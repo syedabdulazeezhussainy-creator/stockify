@@ -1,4 +1,4 @@
-/* ================= STRANGER THINGS THEME ================= */
+/* ================= LIGHT MODERN THEME ================= */
 * {
     box-sizing: border-box;
 }
@@ -7,34 +7,35 @@ body {
     margin: 0;
     min-height: 100vh;
     font-family: "Segoe UI", sans-serif;
-    color: #ffffff;
+    color: #2c2c2c;
 
-    /* Stranger Things background */
-    background: radial-gradient(
-        circle at center,
-        #3a0000,
-        #120000,
-        #000000
+    /* Light animated gradient */
+    background: linear-gradient(
+        -45deg,
+        #e3f2fd,
+        #f3e5f5,
+        #e8f5e9,
+        #fffde7
     );
-    background-size: 200% 200%;
-    animation: upsideDown 14s ease-in-out infinite;
+    background-size: 400% 400%;
+    animation: softBG 16s ease infinite;
 }
 
-@keyframes upsideDown {
-    0% { background-position: 50% 50%; }
-    50% { background-position: 55% 45%; }
-    100% { background-position: 50% 50%; }
+@keyframes softBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* ================= PAGE LOAD ================= */
 .page {
-    animation: pageFade 0.9s ease;
+    animation: pageFade 0.7s ease;
 }
 
 @keyframes pageFade {
     from {
         opacity: 0;
-        transform: translateY(18px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -57,7 +58,7 @@ body {
 }
 
 .nav a {
-    color: #ff3b3b;
+    color: #5e35b1;
     margin: 0 14px;
     text-decoration: none;
     font-weight: bold;
@@ -65,43 +66,32 @@ body {
 }
 
 .nav a:hover {
-    color: #ffffff;
-    text-shadow: 0 0 8px #ff0000;
+    color: #1a237e;
 }
 
 /* ================= CARD ================= */
 .card {
-    background: rgba(40, 0, 0, 0.65);
-    backdrop-filter: blur(14px);
-    border-radius: 22px;
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
     padding: 30px;
     margin-bottom: 30px;
 
-    animation: fadeUp 0.8s ease;
-    transition: transform 0.35s ease, box-shadow 0.35s ease;
-}
-/* ================= STRANGER THINGS CARD FLICKER ================= */
-.card {
-    animation: cardFlicker 6s infinite;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+
+    animation: fadeUp 0.7s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-@keyframes cardFlicker {
-    0%   { box-shadow: 0 0 10px rgba(255,0,0,0.25); }
-    20%  { box-shadow: 0 0 18px rgba(255,0,0,0.45); }
-    40%  { box-shadow: 0 0 12px rgba(255,0,0,0.3); }
-    60%  { box-shadow: 0 0 22px rgba(255,0,0,0.55); }
-    80%  { box-shadow: 0 0 14px rgba(255,0,0,0.35); }
-    100% { box-shadow: 0 0 10px rgba(255,0,0,0.25); }
-}
 .card:hover {
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 0 25px rgba(255, 0, 0, 0.45);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.12);
 }
 
 @keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(25px);
+        transform: translateY(18px);
     }
     to {
         opacity: 1;
@@ -109,11 +99,17 @@ body {
     }
 }
 
-/* ================= KPI LINK ================= */
+/* ================= CLICKABLE CARD ================= */
 .card-link {
     text-decoration: none;
     color: inherit;
     display: block;
+}
+
+/* ================= TEXT ================= */
+h2, h3 {
+    margin-top: 0;
+    color: #311b92;
 }
 
 /* ================= INPUT ================= */
@@ -121,11 +117,9 @@ input {
     width: 100%;
     padding: 13px;
     border-radius: 12px;
-    border: none;
+    border: 1px solid #ccc;
     margin-bottom: 14px;
     font-size: 15px;
-    background: #1a0000;
-    color: white;
 }
 
 /* ================= BUTTON ================= */
@@ -134,62 +128,16 @@ button {
     width: 100%;
     border-radius: 30px;
     border: none;
-    background: linear-gradient(135deg, #ff0000, #8b0000);
+
+    background: linear-gradient(135deg, #42a5f5, #7e57c2);
+    color: white;
+
     font-size: 16px;
     cursor: pointer;
-    color: white;
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
 button:hover {
-    transform: scale(1.07);
-    box-shadow: 0 0 20px rgba(255,0,0,0.7);
-}
-/* ================= UPSIDE DOWN PARTICLES ================= */
-.particles {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-    z-index: 0;
-}
-
-.particles span {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: rgba(255, 0, 0, 0.6);
-    border-radius: 50%;
-    animation: floatUp 18s linear infinite;
-    bottom: -10px;
-}
-
-/* random positions & sizes */
-.particles span:nth-child(1) { left: 10%; animation-duration: 14s; }
-.particles span:nth-child(2) { left: 25%; animation-duration: 18s; width: 8px; height: 8px; }
-.particles span:nth-child(3) { left: 40%; animation-duration: 20s; }
-.particles span:nth-child(4) { left: 55%; animation-duration: 16s; width: 10px; height: 10px; }
-.particles span:nth-child(5) { left: 70%; animation-duration: 22s; }
-.particles span:nth-child(6) { left: 85%; animation-duration: 19s; }
-.particles span:nth-child(7) { left: 95%; animation-duration: 24s; }
-.particles span:nth-child(8) { left: 5%;  animation-duration: 21s; }
-
-@keyframes floatUp {
-    from {
-        transform: translateY(0) scale(1);
-        opacity: 0;
-    }
-    20% { opacity: 1; }
-    to {
-        transform: translateY(-110vh) scale(1.4);
-        opacity: 0;
-    }
-}
-
-/* keep content above particles */
-.container, .card, .nav {
-    position: relative;
-    z-index: 2;
+    transform: scale(1.05);
+    box-shadow: 0 10px 25px rgba(66,165,245,0.4);
 }
