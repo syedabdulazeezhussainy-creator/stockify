@@ -123,6 +123,12 @@
 </div>
 <!-- ================== SCRIPTS ================== -->
 <script>
+Chart.defaults.color = "#333";          
+Chart.defaults.font.size = 13;
+
+const gridColor = "rgba(0,0,0,0.1)";
+</script>
+<script>
 document.addEventListener("DOMContentLoaded", () => {
 
     const labels = {{ trend_labels | tojson }};
@@ -336,3 +342,4 @@ new Chart(lineCtx, {
 
 </body>
 </html>
+
