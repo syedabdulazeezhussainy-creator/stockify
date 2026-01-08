@@ -107,9 +107,8 @@ body {
 /* ================= TEXT ================= */
 h2, h3 {
     margin-top: 0;
-    color: #311b92;
+    color: #00695c;
 }
-
 /* ================= INPUT ================= */
 input {
     width: 100%;
@@ -127,7 +126,7 @@ button {
     border-radius: 30px;
     border: none;
 
-    background: linear-gradient(135deg, #42a5f5, #7e57c2);
+    background: linear-gradient(135deg, #26a69a, #66bb6a);
     color: white;
 
     font-size: 16px;
@@ -137,7 +136,9 @@ button {
 
 button:hover {
     transform: scale(1.05);
-    box-shadow: 0 10px 25px rgba(66,165,245,0.4);
+    box-shadow: 0 10px 25px rgba(38,166,154,0.4);
 }
+
+
 
 
