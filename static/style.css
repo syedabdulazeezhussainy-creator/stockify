@@ -71,13 +71,13 @@ body {
 
 /* ================= CARD ================= */
 .card {
-    background: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.88); /* slightly darker than before */
     backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 30px;
     margin-bottom: 30px;
 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
 
     animation: fadeUp 0.7s ease;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -85,9 +85,8 @@ body {
 
 .card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.18);
 }
-
 @keyframes fadeUp {
     from {
         opacity: 0;
@@ -141,3 +140,4 @@ button:hover {
     transform: scale(1.05);
     box-shadow: 0 10px 25px rgba(66,165,245,0.4);
 }
+
