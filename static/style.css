@@ -58,7 +58,7 @@ body {
 }
 
 .nav a {
-    color: #5e35b1;
+    color: #00897b; /* teal */
     margin: 0 14px;
     text-decoration: none;
     font-weight: bold;
@@ -66,9 +66,8 @@ body {
 }
 
 .nav a:hover {
-    color: #1a237e;
+    color: #004d40;
 }
-
 /* ================= CARD ================= */
 .card {
     background: rgba(255,255,255,0.88); /* slightly darker than before */
@@ -140,4 +139,5 @@ button:hover {
     transform: scale(1.05);
     box-shadow: 0 10px 25px rgba(66,165,245,0.4);
 }
+
 
