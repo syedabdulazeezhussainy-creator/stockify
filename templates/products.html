@@ -1,109 +1,60 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Products | Stockify</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "layout.html" %}
+{% block content %}
 
-<div class="particles">
-    <span></span><span></span><span></span><span></span><span></span>
-    <span></span><span></span><span></span>
-</div>
+<h2>Products</h2>
 
+<div class="card">
+    <h3>Add New Product</h3>
 
-<div class="container">
+    <form method="POST">
+        <input type="text" name="name" placeholder="Product Name" required>
 
-    <div class="container page">
-</div>
-
-
-    <!-- NAV -->
-    <div class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/sales">Sales</a>
-        <a href="/reports">Reports</a>
-        <a href="/logout">Logout</a>
-    </div>
-
-    <h2>📦 Products</h2>
-
-    <!-- ADD PRODUCT -->
-    <div class="card">
-        <h3>Add Product</h3>
-
-        <form method="POST">
-            <input name="name" placeholder="Product Name" required>
-            <input name="price" placeholder="Price" required>
-            <input name="stock" placeholder="Stock" required>
-            <button>Add Product</button>
-        </form>
-    </div>
-
-    <!-- SEARCH & FILTER -->
-    <div class="card">
-        <h3>🔍 Search & Filter</h3>
-
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Search product by name..."
-            onkeyup="searchProducts()"
-        >
-
-        <br><br>
-
-        <a href="/products" style="color:#ffeb3b;">All Products</a> |
-        <a href="/products?filter=low" style="color:#ff5252;">Low Stock</a>
-    </div>
-
-    <!-- PRODUCT LIST -->
-    <div class="card">
-        <h3>📋 Product List</h3>
-
-        <table width="100%" cellpadding="10" id="productTable">
-            <tr>
-                <th align="left">Name</th>
-                <th align="left">Price</th>
-                <th align="left">Stock</th>
-            </tr>
-
-            {% for p in items %}
-            <tr>
-                <td class="pname">{{ p.name }}</td>
-                <td>₹ {{ p.price }}</td>
-                <td>
-                    {% if p.stock < 5 %}
-                        <span style="color:#ff5252;">{{ p.stock }} ⚠️</span>
-                    {% else %}
-                        {{ p.stock }}
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3">No products found</td>
-            </tr>
+        <select name="category" required>
+            <option value="">Select Category</option>
+            {% for c in categories %}
+            <option value="{{ c[0] }}">{{ c[1] }}</option>
             {% endfor %}
-        </table>
-    </div>
+        </select>
 
+        <select name="supplier" required>
+            <option value="">Select Supplier</option>
+            {% for s in suppliers %}
+            <option value="{{ s[0] }}">{{ s[1] }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="number" step="0.01" name="price" placeholder="Price" required>
+
+        <button>Add Product</button>
+    </form>
 </div>
 
-<!-- SEARCH SCRIPT -->
-<script>
-function searchProducts() {
-    const input = document.getElementById("searchInput").value.toLowerCase();
-    const rows = document.querySelectorAll("#productTable tr");
 
-    rows.forEach((row, index) => {
-        if (index === 0) return; // skip header
+<div class="card">
+    <h3>Product List</h3>
 
-        const name = row.querySelector(".pname").innerText.toLowerCase();
-        row.style.display = name.includes(input) ? "" : "none";
-    });
-}
-</script>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>SKU</th>
+            <th>Category</th>
+            <th>Supplier</th>
+            <th>Price</th>
+            <th>Stock</th>
+        </tr>
 
-</body>
-</html>
+        {% for p in products %}
+        <tr>
+            <td>{{ p[1] }}</td>
+            <td>{{ p[2] }}</td>
+            <td>{{ p[8] }}</td>
+            <td>{{ p[9] }}</td>
+            <td>₹{{ p[5] }}</td>
+            <td>{{ p[6] }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+</div>
+
+{% endblock %}

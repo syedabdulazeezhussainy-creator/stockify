@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title if title else "Inventory System" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+<button class="menu-btn" onclick="toggleSidebar()">☰</button>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2 class="logo">Stockify</h2>
+
+    <a href="/dashboard">📊 Dashboard</a>
+    <a href="/products">📦 Products</a>
+    <a href="/suppliers">🏭 Suppliers</a>
+    <a href="/stockin">⬆ Stock In</a>
+    <a href="/stockout">⬇ Stock Out</a>
+    <a href="/sales">🛒 Sales</a>
+    <a href="/reports">📈 Reports</a>
+    <a href="/logout">🚪 Logout</a>
+</div>
+<div id="toast"></div>
+<script>
+function toast(msg){
+    let t = document.getElementById("toast");
+    t.innerText = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+}
+</script>
+<!-- MAIN CONTENT -->
+<div class="main-content">
+    <div class="page-container">
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>
+<!-- LOADING SCREEN -->
+<div id="loader">
+    <div class="spinner"></div>
+</div>
+
+<script>
+window.onload = () => {
+    document.getElementById("loader").style.display = "none";
+};
+</script>
+<script>
+function toggleSidebar() {
+    document.querySelector(".sidebar").classList.toggle("open");
+}
+</script>
+
+</body>
+</html>

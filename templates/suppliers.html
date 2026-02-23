@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>Suppliers</h2>
+
+<div class="card">
+    <h3>Add Supplier</h3>
+
+    <form method="POST">
+    <input type="text" name="name" placeholder="Supplier Name" required>
+    <input type="text" name="phone" placeholder="Phone Number" required>
+    <button>Add Supplier</button>
+</form>
+</div>
+
+<div class="card">
+    <h3>Supplier List</h3>
+
+    <table>
+        <tr>
+    <th>Name</th>
+    <th>Phone</th>
+</tr>
+
+{% for s in suppliers %}
+<tr>
+    <td>{{ s[1] }}</td>
+    <td>{{ s[2] }}</td>
+</tr>
+{% endfor %}
+    </table>
+</div>
+
+{% endblock %}

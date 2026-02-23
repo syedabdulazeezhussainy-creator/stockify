@@ -1,98 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sales</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "layout.html" %}
+{% block content %}
 
-<div class="particles">
-    <span></span><span></span><span></span><span></span><span></span>
-    <span></span><span></span><span></span>
-</div>
+<h2>Sales (POS)</h2>
 
+<div class="card">
+    <h3>New Sale</h3>
 
-<div class="container">
-
-      <div class="container page">
-</div>
-
-
-    <div class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/products">Products</a>
-        <a href="/reports">Reports</a>
-        <a href="/logout">Logout</a>
-    </div>
-
-    <div class="card">
-    <h3>🛒 New Sale</h3>
-
-    <form method="POST" id="saleForm">
-
-        <!-- Product search -->
-        <input
-            list="productList"
-            name="product"
-            id="productInput"
-            placeholder="Search product..."
-            required
-        >
-
-        <datalist id="productList">
+    <form method="POST">
+        <select name="product" id="productSelect" required>
+            <option value="">Select Product</option>
             {% for p in products %}
-                {% if p.stock > 0 %}
-                    <option value="{{ p.name }}" data-stock="{{ p.stock }}">
-                {% endif %}
+            <option value="{{ p[0] }}" data-price="{{ p[5] }}" data-stock="{{ p[6] }}">
+                {{ p[1] }} (₹{{ p[5] }}, Stock: {{ p[6] }})
+            </option>
             {% endfor %}
-        </datalist>
+        </select>
 
-        <!-- Quantity -->
-        <input
-            type="number"
-            name="qty"
-            id="qtyInput"
-            placeholder="Quantity"
-            min="1"
-            required
-        >
+        <input type="number" name="qty" id="qty" placeholder="Quantity" required>
 
-        <small id="stockInfo" style="opacity:0.8;"></small>
+        <input type="text" id="totalBox" placeholder="Total Amount" disabled>
 
-        <button>Sell</button>
+        <button>Complete Sale</button>
     </form>
 </div>
-<script src="{{ url_for('static', filename='main.js') }}"></script>
 
-</body>
-</html>
 <script>
-const productInput = document.getElementById("productInput");
-const qtyInput = document.getElementById("qtyInput");
-const stockInfo = document.getElementById("stockInfo");
+const priceBox = document.getElementById("productSelect");
+const qtyBox = document.getElementById("qty");
+const totalBox = document.getElementById("totalBox");
 
-const productStock = {
-    {% for p in products %}
-        "{{ p.name }}": {{ p.stock }},
-    {% endfor %}
-};
+qtyBox.addEventListener("input", updateTotal);
+priceBox.addEventListener("change", updateTotal);
 
-productInput.addEventListener("input", () => {
-    const selected = productInput.value;
-
-    if (productStock[selected] !== undefined) {
-        const stock = productStock[selected];
-        qtyInput.max = stock;
-        stockInfo.textContent = `Available stock: ${stock}`;
-    } else {
-        qtyInput.removeAttribute("max");
-        stockInfo.textContent = "";
-    }
-});
-
-qtyInput.addEventListener("input", () => {
-    if (qtyInput.max && qtyInput.value > qtyInput.max) {
-        qtyInput.value = qtyInput.max;
-    }
-});
+function updateTotal() {
+    let price = priceBox.selectedOptions[0]?.dataset.price;
+    let qty = qtyBox.value || 0;
+    totalBox.value = price ? "₹" + (qty * price) : "";
+}
 </script>
+
+{% endblock %}

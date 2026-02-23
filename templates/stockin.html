@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>Stock In</h2>
+
+<div class="card">
+    <h3>Add Stock</h3>
+
+    <form method="POST">
+        <select name="product" required>
+            <option value="">Select Product</option>
+            {% for p in products %}
+            <option value="{{ p[0] }}">{{ p[1] }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="number" name="qty" placeholder="Quantity" required>
+        <button>Add Stock</button>
+    </form>
+</div>
+
+{% endblock %}
