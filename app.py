@@ -332,22 +332,41 @@ def sales():
 
 
 # ---------------------- REPORTS ------------------------
-
 @app.route("/reports")
 def reports():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
+
+        # Sales list
         sales = db.execute("""
-            SELECT sales.*, products.name 
-            FROM sales 
+            SELECT sales.date, products.name, sales.quantity, sales.total
+            FROM sales
             JOIN products ON sales.product_id = products.id
         """).fetchall()
 
-    return render_template("reports.html", sales=sales)
+        # Sales by product for bar chart
+        bar_data = db.execute("""
+            SELECT products.name, SUM(sales.total)
+            FROM sales
+            JOIN products ON sales.product_id = products.id
+            GROUP BY products.name
+        """).fetchall()
 
+        labels = [row[0] for row in bar_data]
+        totals = [row[1] for row in bar_data]
 
+        # Stock distribution for pie chart
+        pie_data = db.execute("""
+            SELECT name, stock FROM products
+        """).fetchall()
+
+    return render_template("reports.html",
+                           sales=sales,
+                           labels=labels,
+                           totals=totals,
+                           pie_data=pie_data)
 # ---------------------- LOGOUT ------------------------
 
 @app.route("/logout")

@@ -1,11 +1,29 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2>Sales Reports</h2>
+<h2>Reports</h2>
+
+<div class="grid">
+
+    <div class="card">
+        <h3>Sales per Product</h3>
+        <canvas id="barChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Stock Distribution</h3>
+        <canvas id="pieChart"></canvas>
+    </div>
+
+</div>
 
 <div class="card">
-    <h3>Sales History</h3>
+    <h3>Sales Trend</h3>
+    <canvas id="lineChart"></canvas>
+</div>
 
+<div class="card">
+    <h3>Sales Records</h3>
     <table>
         <tr>
             <th>Date</th>
@@ -16,13 +34,53 @@
 
         {% for s in sales %}
         <tr>
-            <td>{{ s[4] }}</td>
-            <td>{{ s[5] }}</td>
+            <td>{{ s[0] }}</td>
+            <td>{{ s[1] }}</td>
             <td>{{ s[2] }}</td>
             <td>₹{{ s[3] }}</td>
         </tr>
         {% endfor %}
     </table>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: {
+        labels: {{ labels|tojson }},
+        datasets: [{
+            label: "Revenue",
+            data: {{ totals|tojson }},
+            backgroundColor: "#1a2b5f"
+        }]
+    }
+});
+
+new Chart(document.getElementById("pieChart"), {
+    type: "pie",
+    data: {
+        labels: {{ pie_data|map(attribute=0)|list|tojson }},
+        datasets: [{
+            data: {{ pie_data|map(attribute=1)|list|tojson }},
+            backgroundColor: ["#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b"]
+        }]
+    }
+});
+
+new Chart(document.getElementById("lineChart"), {
+    type: "line",
+    data: {
+        labels: {{ labels|tojson }},
+        datasets: [{
+            data: {{ totals|tojson }},
+            borderColor: "#1a2b5f",
+            fill: false,
+            tension: 0.3
+        }]
+    }
+});
+</script>
 
 {% endblock %}

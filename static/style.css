@@ -101,3 +101,11 @@ h3 {
     opacity: 1;
     transform: translateY(0);
 }
+.alert {
+    background: #ffcccb;
+    color: #a30000;
+    padding: 12px 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}

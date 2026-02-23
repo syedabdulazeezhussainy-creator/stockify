@@ -69,3 +69,8 @@ table {
     border-radius: 12px;
     overflow: hidden;
 }
+.low-stock td {
+    background: #ffefef !important;
+    color: #b30000 !important;
+    font-weight: 600;
+}
