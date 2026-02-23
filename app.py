@@ -1,343 +1,362 @@
-from flask import Flask, render_template, request, redirect, session, send_file, flash
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
 import bcrypt
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
 from datetime import datetime
-import os
-import csv
-from flask import Response
+
 app = Flask(__name__)
-app.secret_key = "stockify_secret_key"
+app.secret_key = "supersecret123"
 
 
-# ================= DATABASE =================
+# ---------------------- DATABASE -----------------------
+
 def get_db():
-    conn = sqlite3.connect("inventory.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+    return sqlite3.connect("inventory.db")
 
 
-# ================= INITIAL SETUP =================
-with get_db() as db:
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password BLOB
-    )
-    """)
+def init_db():
+    with sqlite3.connect("inventory.db") as db:
 
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        price REAL,
-        stock INTEGER
-    )
-    """)
-
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product TEXT,
-        quantity INTEGER,
-        total REAL,
-        created_at TEXT
-    )
-    """)
-
-    # Create default admin
-    admin = db.execute(
-        "SELECT * FROM users WHERE username='admin'"
-    ).fetchone()
-
-    if not admin:
-        db.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            ("admin", bcrypt.hashpw(b"admin123", bcrypt.gensalt()))
+        # USERS TABLE
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            password BLOB
         )
+        """)
+
+        # COMPANY TABLE
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS company(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            gst TEXT,
+            category TEXT,
+            address TEXT
+        )
+        """)
+
+        # CATEGORY TABLE
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS categories(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT
+        )
+        """)
+
+        # SUPPLIERS
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS suppliers(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            phone TEXT,
+            email TEXT
+        )
+        """)
+
+        # PRODUCTS
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS products(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            sku TEXT,
+            category_id INTEGER,
+            supplier_id INTEGER,
+            price REAL,
+            stock INTEGER,
+            FOREIGN KEY(category_id) REFERENCES categories(id),
+            FOREIGN KEY(supplier_id) REFERENCES suppliers(id)
+        )
+        """)
+
+        # STOCK IN
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS stock_in(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER,
+            date TEXT,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )
+        """)
+
+        # STOCK OUT
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS stock_out(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER,
+            date TEXT,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )
+        """)
+
+        # SALES TABLE
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS sales(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER,
+            total REAL,
+            date TEXT,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )
+        """)
+
+        # --------- INSERT DEFAULT ADMIN USER ----------
+        admin = db.execute("SELECT * FROM users").fetchone()
+        if not admin:
+            pwd = bcrypt.hashpw("admin".encode(), bcrypt.gensalt())
+            db.execute("INSERT INTO users(username, password) VALUES(?, ?)", ("admin", pwd))
+
+        # --------- PREDEFINED CATEGORIES ----------
+        defaults = ["Electronics", "Clothing", "Hardware", "Food Items"]
+        for cat in defaults:
+            exists = db.execute("SELECT * FROM categories WHERE name=?", (cat,)).fetchone()
+            if not exists:
+                db.execute("INSERT INTO categories(name) VALUES(?)", (cat,))
 
 
-# ================= LOGIN CHECK =================
-def login_required():
-    return "user" not in session
+# ---------------------- LOGIN -------------------------
 
-@app.route("/export_sales")
-def export_sales():
-    if login_required():
-        return redirect("/login")
-
-    with get_db() as db:
-        sales = db.execute(
-            "SELECT product, quantity, total, created_at FROM sales ORDER BY created_at"
-        ).fetchall()
-
-    def generate():
-        data = csv.writer([])
-        yield "Product,Quantity,Total,Date\n"
-
-        for s in sales:
-            yield f"{s['product']},{s['quantity']},{s['total']},{s['created_at']}\n"
-
-    return Response(
-        generate(),
-        mimetype="text/csv",
-        headers={
-            "Content-Disposition": "attachment; filename=sales_report.csv"
-        }
-    )
-# ================= SPLASH SCREEN =================
-@app.route("/")
-def splash():
-    return render_template("splash.html")
-
-
-# ================= LOGIN =================
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
+
+        # COMPANY DETAILS
+        company = request.form["company_name"]
+        gst = request.form["gst"]
+        category = request.form["category"]
+
+        # USER LOGIN
+        username = request.form["username"]
+        password = request.form["password"]
 
         with get_db() as db:
-            user = db.execute(
-                "SELECT * FROM users WHERE username=?",
-                (u,)
-            ).fetchone()
 
-        if user and bcrypt.checkpw(p.encode(), user["password"]):
-            session["user"] = u
+            # SAVE COMPANY (RESET MODE → only 1 record)
+            db.execute("DELETE FROM company")
+            db.execute("INSERT INTO company(name, gst, category) VALUES(?,?,?)",
+                       (company, gst, category))
+
+            # CHECK USER
+            user = db.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+
+        if user and bcrypt.checkpw(password.encode(), user[2]):
+
+            session["user"] = username
+            session["company"] = company
+            session["gst"] = gst
+            session["category"] = category
+
             return redirect("/dashboard")
-        else:
-            flash("Invalid username or password")
 
     return render_template("login.html")
 
 
-# ================= LOGOUT =================
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
+def login_required():
+    return "user" not in session
 
 
-# ================= DASHBOARD =================
+# ---------------------- DASHBOARD ------------------------
+
 @app.route("/dashboard")
 def dashboard():
     if login_required():
-        return redirect("/login")
+        return redirect("/")
 
     with get_db() as db:
-        total_revenue = db.execute(
-            "SELECT SUM(total) AS total FROM sales"
-        ).fetchone()["total"] or 0
+        total_products = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+        total_sales = db.execute("SELECT SUM(total) FROM sales").fetchone()[0] or 0
+        low_stock = db.execute("SELECT COUNT(*) FROM products WHERE stock < 5").fetchone()[0]
 
-        total_products = db.execute(
-            "SELECT COUNT(*) AS count FROM products"
-        ).fetchone()["count"]
+        month_labels = []
+        month_totals = []
+        rows = db.execute("""
+            SELECT strftime('%m', date), SUM(total)
+            FROM sales
+            GROUP BY strftime('%m', date)
+        """).fetchall()
 
-        total_sales = db.execute(
-            "SELECT COUNT(*) AS count FROM sales"
-        ).fetchone()["count"]
+        for m, t in rows:
+            month_labels.append(m)
+            month_totals.append(t)
 
-        low_stock = db.execute(
-            "SELECT COUNT(*) AS count FROM products WHERE stock < 5"
-        ).fetchone()["count"]
+    return render_template("dashboard.html",
+                           total_products=total_products,
+                           total_sales=total_sales,
+                           low_stock_count=low_stock,
+                           month_labels=month_labels,
+                           month_totals=month_totals)
 
-    return render_template(
-        "dashboard.html",
-        total_revenue=total_revenue,
-        total_products=total_products,
-        total_sales=total_sales,
-        low_stock=low_stock
-    )
 
-# ================= PRODUCTS =================
+# ---------------------- PRODUCTS -------------------------
+
 @app.route("/products", methods=["GET", "POST"])
 def products():
     if login_required():
-        return redirect("/login")
-
-    filter_stock = request.args.get("filter")
-
-    if request.method == "POST":
-        name = request.form["name"]
-        price = request.form["price"]
-        stock = request.form["stock"]
-
-        with get_db() as db:
-            db.execute(
-                "INSERT INTO products VALUES (NULL, ?, ?, ?)",
-                (name, price, stock)
-            )
+        return redirect("/")
 
     with get_db() as db:
-        if filter_stock == "low":
-            items = db.execute(
-                "SELECT * FROM products WHERE stock < 5"
-            ).fetchall()
-        else:
-            items = db.execute(
-                "SELECT * FROM products"
-            ).fetchall()
+        categories = db.execute("SELECT * FROM categories").fetchall()
+        suppliers = db.execute("SELECT * FROM suppliers").fetchall()
 
-    return render_template("products.html", items=items)
-# ================= SALES =================
+        if request.method == "POST":
+            name = request.form["name"]
+            price = request.form["price"]
+            category = request.form["category"]
+            supplier = request.form["supplier"]
+
+            # AUTO SKU: First 3 letters + 4 numbers
+            sku = name[:3].upper() + str(datetime.now().timestamp())[-4:]
+
+            db.execute("""
+                INSERT INTO products(name, sku, price, stock, category_id, supplier_id)
+                VALUES(?,?,?,?,?,?)
+            """, (name, sku, price, 0, category, supplier))
+
+        products = db.execute("""
+            SELECT products.*, categories.name, suppliers.name
+            FROM products
+            LEFT JOIN categories ON products.category_id = categories.id
+            LEFT JOIN suppliers ON products.supplier_id = suppliers.id
+        """).fetchall()
+
+    return render_template("products.html", products=products,
+                           categories=categories, suppliers=suppliers)
+
+
+# ---------------------- SUPPLIERS ------------------------
+@app.route("/suppliers", methods=["GET", "POST"])
+def suppliers():
+    if login_required():
+        return redirect("/")
+
+    with get_db() as db:
+
+        if request.method == "POST":
+            name = request.form["name"]
+            phone = request.form["phone"]
+
+            db.execute(
+                "INSERT INTO suppliers(name, phone) VALUES(?, ?)",
+                (name, phone)
+            )
+
+        suppliers = db.execute("SELECT * FROM suppliers").fetchall()
+
+    return render_template("suppliers.html", suppliers=suppliers)
+# ---------------------- STOCK IN ------------------------
+
+@app.route("/stockin", methods=["GET", "POST"])
+def stock_in():
+    if login_required():
+        return redirect("/")
+
+    with get_db() as db:
+
+        if request.method == "POST":
+            product = request.form["product"]
+            qty = int(request.form["qty"])
+            date = datetime.now().strftime("%Y-%m-%d")
+
+            db.execute("INSERT INTO stock_in(product_id, quantity, date) VALUES(?,?,?)",
+                       (product, qty, date))
+            db.execute("UPDATE products SET stock = stock + ? WHERE id=?", (qty, product))
+
+        products = db.execute("SELECT * FROM products").fetchall()
+
+    return render_template("stockin.html", products=products)
+
+
+# ---------------------- STOCK OUT ------------------------
+
+@app.route("/stockout", methods=["GET", "POST"])
+def stock_out():
+    if login_required():
+        return redirect("/")
+
+    with get_db() as db:
+
+        if request.method == "POST":
+            product = request.form["product"]
+            qty = int(request.form["qty"])
+            date = datetime.now().strftime("%Y-%m-%d")
+
+            # prevent negative
+            current = db.execute("SELECT stock FROM products WHERE id=?", (product,)).fetchone()[0]
+            if qty > current:
+                qty = current
+
+            db.execute("INSERT INTO stock_out(product_id, quantity, date) VALUES(?,?,?)",
+                       (product, qty, date))
+            db.execute("UPDATE products SET stock = stock - ? WHERE id=?", (qty, product))
+
+        products = db.execute("SELECT * FROM products").fetchall()
+
+    return render_template("stockout.html", products=products)
+
+
+# ---------------------- SALES (POS STYLE) ------------------------
+
 @app.route("/sales", methods=["GET", "POST"])
 def sales():
     if login_required():
-        return redirect("/login")
+        return redirect("/")
 
     with get_db() as db:
-        products = db.execute(
-            "SELECT name, price, stock FROM products"
-        ).fetchall()
 
-    if request.method == "POST":
-        product_name = request.form["product"]
-        qty = int(request.form["qty"])
+        if request.method == "POST":
+            product_id = request.form["product"]
+            qty = int(request.form["qty"])
 
-        with get_db() as db:
-            item = db.execute(
-                "SELECT * FROM products WHERE name=?",
-                (product_name,)
-            ).fetchone()
+            product = db.execute("SELECT price, stock FROM products WHERE id=?", (product_id,)).fetchone()
+            if not product:
+                return redirect("/sales")
 
-            if item and item["stock"] >= qty:
-                total = item["price"] * qty
-                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            price, stock = product
 
-                db.execute(
-                    "INSERT INTO sales VALUES (NULL, ?, ?, ?, ?)",
-                    (item["name"], qty, total, now)
-                )
+            if qty > stock:
+                qty = stock
 
-                db.execute(
-                    "UPDATE products SET stock=stock-? WHERE name=?",
-                    (qty, item["name"])
-                )
-            else:
-                flash("Not enough stock")
+            total = qty * price
+            date = datetime.now().strftime("%Y-%m-%d")
 
-    with get_db() as db:
-        records = db.execute(
-            "SELECT * FROM sales ORDER BY created_at DESC"
-        ).fetchall()
+            db.execute("INSERT INTO sales(product_id, quantity, total, date) VALUES(?,?,?,?)",
+                       (product_id, qty, total, date))
+            db.execute("UPDATE products SET stock = stock - ? WHERE id=?", (qty, product_id))
 
-    return render_template(
-        "sales.html",
-        products=products,
-        records=records
-    )
-# ================= REPORTS =================
-@app.route("/reports", methods=["GET", "POST"])
+        products = db.execute("SELECT * FROM products").fetchall()
+
+    return render_template("sales.html", products=products)
+
+
+# ---------------------- REPORTS ------------------------
+
+@app.route("/reports")
 def reports():
     if login_required():
-        return redirect("/login")
-
-    from_date = request.form.get("from_date")
-    to_date = request.form.get("to_date")
+        return redirect("/")
 
     with get_db() as db:
-        # Overall stats
-        total_sales = db.execute(
-            "SELECT SUM(total) AS total FROM sales"
-        ).fetchone()["total"] or 0
+        sales = db.execute("""
+            SELECT sales.*, products.name 
+            FROM sales 
+            JOIN products ON sales.product_id = products.id
+        """).fetchall()
 
-        total_items = db.execute(
-            "SELECT COUNT(*) AS count FROM products"
-        ).fetchone()["count"]
-
-        low_stock = db.execute(
-            "SELECT name, stock FROM products WHERE stock < 5"
-        ).fetchall()
-
-        # Today & month
-        today_sales = db.execute(
-            "SELECT SUM(total) AS total FROM sales WHERE DATE(created_at)=DATE('now')"
-        ).fetchone()["total"] or 0
-
-        monthly_sales = db.execute(
-            """
-            SELECT SUM(total) AS total
-            FROM sales
-            WHERE strftime('%Y-%m', created_at)=strftime('%Y-%m','now')
-            """
-        ).fetchone()["total"] or 0
-
-        # Filtered sales table
-        if from_date and to_date:
-            sales_data = db.execute(
-                """
-                SELECT * FROM sales
-                WHERE DATE(created_at) BETWEEN ? AND ?
-                ORDER BY created_at
-                """,
-                (from_date, to_date)
-            ).fetchall()
-        else:
-            sales_data = db.execute(
-                "SELECT * FROM sales ORDER BY created_at"
-            ).fetchall()
-
-        # 🔹 SALES TREND DATA (for line chart)
-        trend_data = db.execute(
-            """
-            SELECT DATE(created_at) AS day, SUM(total) AS total
-            FROM sales
-            GROUP BY DATE(created_at)
-            ORDER BY day
-            """
-        ).fetchall()
-
-    # Prepare chart arrays
-    trend_labels = [row["day"] for row in trend_data]
-    trend_totals = [row["total"] for row in trend_data]
-
-    return render_template(
-        "reports.html",
-        total_sales=total_sales,
-        total_items=total_items,
-        low_stock=low_stock,
-        today_sales=today_sales,
-        monthly_sales=monthly_sales,
-        sales_data=sales_data,
-        trend_labels=trend_labels,
-        trend_totals=trend_totals
-    )
-# ================= INVOICE PDF =================
-@app.route("/invoice/<int:sale_id>")
-def invoice(sale_id):
-    if login_required():
-        return redirect("/login")
-
-    with get_db() as db:
-        sale = db.execute(
-            "SELECT * FROM sales WHERE id=?",
-            (sale_id,)
-        ).fetchone()
-
-    if not sale:
-        return "Invoice not found"
-
-    file = f"invoice_{sale_id}.pdf"
-    c = canvas.Canvas(file, pagesize=A4)
-
-    c.drawString(100, 800, "STOCKIFY - INVOICE")
-    c.drawString(100, 770, f"Invoice ID: {sale_id}")
-    c.drawString(100, 740, f"Product: {sale['product']}")
-    c.drawString(100, 720, f"Quantity: {sale['quantity']}")
-    c.drawString(100, 700, f"Total: ₹ {sale['total']}")
-    c.drawString(100, 670, f"Date: {sale['created_at']}")
-    c.drawString(100, 630, "Thank you for your business!")
-
-    c.save()
-
-    return send_file(file, as_attachment=True)
+    return render_template("reports.html", sales=sales)
 
 
+# ---------------------- LOGOUT ------------------------
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+
+# RUN
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-
+    init_db()
+    app.run(debug=True)

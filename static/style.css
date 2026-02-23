@@ -1,144 +1,103 @@
-/* ================= LIGHT MODERN THEME ================= */
-* {
-    box-sizing: border-box;
-}
-
+/* ================= GLOBAL THEME ================= */
 body {
     margin: 0;
-    min-height: 100vh;
-    font-family: "Segoe UI", sans-serif;
-    color: #2c2c2c;
+    font-family: "Poppins", sans-serif;
 
-    /* Light animated gradient */
-    background: linear-gradient(
-        -45deg,
-        #e3f2fd,
-        #f3e5f5,
-        #e8f5e9,
-        #fffde7
-    );
+    background: linear-gradient(135deg, #b993d6, #8ca6db);
     background-size: 400% 400%;
-    animation: softBG 16s ease infinite;
+    animation: gradientFlow 18s ease infinite;
+
+    display: flex;
+    color: white;
 }
 
-@keyframes softBG {
-    0% { background-position: 0% 50%; }
+@keyframes gradientFlow {
+    0% { background-position: 0 50%; }
     50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    100% { background-position: 0 50%; }
 }
 
-/* ================= PAGE LOAD ================= */
-.page {
-    animation: pageFade 0.7s ease;
+.page-container {
+    padding: 35px;
 }
 
-@keyframes pageFade {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* GLASS CARD */
+.card {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 18px;
+    padding: 25px;
+    color: #fff;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    backdrop-filter: blur(14px);
+    transition: 0.25s;
+}
+.card {
+    border: 1px solid rgba(255,255,255,0.25);
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.35);
 }
 
-/* ================= LAYOUT ================= */
-.container {
-    width: 90%;
-    max-width: 1150px;
-    margin: auto;
-    padding: 40px 0;
+/* HEADERS */
+h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 20px;
 }
 
-/* ================= NAV ================= */
-.nav {
-    text-align: center;
-    margin-bottom: 30px;
+h3 {
+    color: white;
 }
 
-.nav a {
-    color: #00897b; /* teal */
-    margin: 0 14px;
-    text-decoration: none;
-    font-weight: bold;
+/* ANIMATIONS */
+.fade-in {
+    animation: fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+#loader {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 7px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+#toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: #6a5acd;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 16px;
+    opacity: 0;
+    transform: translateY(40px);
     transition: 0.3s;
 }
 
-.nav a:hover {
-    color: #004d40;
+#toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
-/* ================= CARD ================= */
-.card {
-    background: rgba(255,255,255,0.88); /* slightly darker than before */
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 30px;
-
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-
-    animation: fadeUp 0.7s ease;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 18px 45px rgba(0,0,0,0.18);
-}
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(18px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ================= CLICKABLE CARD ================= */
-.card-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-}
-
-/* ================= TEXT ================= */
-h2, h3 {
-    margin-top: 0;
-    color: #00695c;
-}
-/* ================= INPUT ================= */
-input {
-    width: 100%;
-    padding: 13px;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    margin-bottom: 14px;
-    font-size: 15px;
-}
-
-/* ================= BUTTON ================= */
-button {
-    padding: 13px;
-    width: 100%;
-    border-radius: 30px;
-    border: none;
-
-    background: linear-gradient(135deg, #26a69a, #66bb6a);
-    color: white;
-
-    font-size: 16px;
-    cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 10px 25px rgba(38,166,154,0.4);
-}
-
-
-
-
