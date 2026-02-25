@@ -8,6 +8,16 @@ app.secret_key = "supersecret123"
 
 
 # ---------------------- DATABASE -----------------------
+def init_db():
+    with sqlite3.connect("your_database_file.db") as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS company (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                symbol TEXT
+            )
+        """)
+        db.commit()
 
 def get_db():
     return sqlite3.connect("inventory.db")
