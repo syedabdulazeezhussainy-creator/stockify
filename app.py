@@ -120,7 +120,7 @@ def init_db():
             db.execute("INSERT INTO users(username, password) VALUES(?, ?)", ("admin", pwd))
 
         # --------- PREDEFINED CATEGORIES ----------
-        defaults = ["Electronics", "Clothing", "Hardware", "Food Items"]
+        defaults = ["Electronics", "Clothing", "Hardware", "Food Items","Vehicles"]
         for cat in defaults:
             exists = db.execute("SELECT * FROM categories WHERE name=?", (cat,)).fetchone()
             if not exists:
