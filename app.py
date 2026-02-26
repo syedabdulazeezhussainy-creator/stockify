@@ -7,26 +7,18 @@ app = Flask(__name__)
 app.secret_key = "supersecret123"
 
 
-# ---------------------- DATABASE -----------------------
-def init_db():
-    with sqlite3.connect("your_database_file.db") as db:
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS company (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                symbol TEXT
-            )
-        """)
-        db.commit()
-
+# ------------------ MULTI-COMPANY DATABASE ------------------
 def get_db():
-    return sqlite3.connect("inventory.db")
+    """Returns the ACTIVE company DB"""
+    db_name = session.get("db_name", "default.db")
+    return sqlite3.connect(db_name)
 
 
-def init_db():
-    with sqlite3.connect("inventory.db") as db:
+def init_db(db_name):
+    """Creates database structure for NEW company"""
+    with sqlite3.connect(db_name) as db:
 
-        # USERS TABLE
+        # USERS
         db.execute("""
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +27,7 @@ def init_db():
         )
         """)
 
-        # COMPANY TABLE
+        # COMPANY SETTINGS
         db.execute("""
         CREATE TABLE IF NOT EXISTS company(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +38,7 @@ def init_db():
         )
         """)
 
-        # CATEGORY TABLE
+        # CATEGORIES
         db.execute("""
         CREATE TABLE IF NOT EXISTS categories(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,8 +51,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS suppliers(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            phone TEXT,
-            email TEXT
+            phone TEXT
         )
         """)
 
@@ -73,9 +64,7 @@ def init_db():
             category_id INTEGER,
             supplier_id INTEGER,
             price REAL,
-            stock INTEGER,
-            FOREIGN KEY(category_id) REFERENCES categories(id),
-            FOREIGN KEY(supplier_id) REFERENCES suppliers(id)
+            stock INTEGER
         )
         """)
 
@@ -85,8 +74,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER,
             quantity INTEGER,
-            date TEXT,
-            FOREIGN KEY(product_id) REFERENCES products(id)
+            date TEXT
         )
         """)
 
@@ -96,80 +84,74 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER,
             quantity INTEGER,
-            date TEXT,
-            FOREIGN KEY(product_id) REFERENCES products(id)
+            date TEXT
         )
         """)
 
-        # SALES TABLE
+        # SALES
         db.execute("""
         CREATE TABLE IF NOT EXISTS sales(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER,
             quantity INTEGER,
             total REAL,
-            date TEXT,
-            FOREIGN KEY(product_id) REFERENCES products(id)
+            date TEXT
         )
         """)
 
-        # --------- INSERT DEFAULT ADMIN USER ----------
+        # Default admin user
         admin = db.execute("SELECT * FROM users").fetchone()
         if not admin:
             pwd = bcrypt.hashpw("admin".encode(), bcrypt.gensalt())
-            db.execute("INSERT INTO users(username, password) VALUES(?, ?)", ("admin", pwd))
+            db.execute("INSERT INTO users(username, password) VALUES(?,?)", ("admin", pwd))
 
-        # --------- PREDEFINED CATEGORIES ----------
-        defaults = ["Electronics", "Clothing", "Hardware", "Food Items","Vehicles"]
+        # Default categories
+        defaults = ["Electronics", "Clothing", "Hardware", "Food Items", "Vehicles"]
         for cat in defaults:
             exists = db.execute("SELECT * FROM categories WHERE name=?", (cat,)).fetchone()
             if not exists:
                 db.execute("INSERT INTO categories(name) VALUES(?)", (cat,))
 
 
-# ---------------------- LOGIN -------------------------
+# --------------------------- LOGIN ---------------------------
+def login_required():
+    return "user" not in session
+
 
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-
-        # COMPANY DETAILS
-        company = request.form["company_name"]
+        company_name = request.form["company_name"]
         gst = request.form["gst"]
         category = request.form["category"]
 
-        # USER LOGIN
         username = request.form["username"]
         password = request.form["password"]
 
-        with get_db() as db:
+        # Generate DB name for company
+        db_name = f"stockify_{company_name.replace(' ', '_').lower()}.db"
+        session["db_name"] = db_name
 
-            # SAVE COMPANY (RESET MODE → only 1 record)
-            db.execute("DELETE FROM company")
-            db.execute("INSERT INTO company(name, gst, category) VALUES(?,?,?)",
-                       (company, gst, category))
+        # Create DB if new
+        init_db(db_name)
 
-            # CHECK USER
+        # Validate user
+        with sqlite3.connect(db_name) as db:
             user = db.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
 
+            # Save company info
+            db.execute("DELETE FROM company")
+            db.execute("INSERT INTO company(name, gst, category) VALUES(?,?,?)",
+                       (company_name, gst, category))
+
         if user and bcrypt.checkpw(password.encode(), user[2]):
-
             session["user"] = username
-            session["company"] = company
-            session["gst"] = gst
-            session["category"] = category
-
             return redirect("/dashboard")
 
     return render_template("login.html")
 
 
-def login_required():
-    return "user" not in session
-
-
-# ---------------------- DASHBOARD ------------------------
-
+# ------------------------- DASHBOARD -------------------------
 @app.route("/dashboard")
 def dashboard():
     if login_required():
@@ -200,8 +182,7 @@ def dashboard():
                            month_totals=month_totals)
 
 
-# ---------------------- PRODUCTS -------------------------
-
+# --------------------------- PRODUCTS -------------------------
 @app.route("/products", methods=["GET", "POST"])
 def products():
     if login_required():
@@ -217,8 +198,8 @@ def products():
             category = request.form["category"]
             supplier = request.form["supplier"]
 
-            # AUTO SKU: First 3 letters + 4 numbers
-            sku = name[:3].upper() + str(datetime.now().timestamp())[-4:]
+            # Auto SKU
+            sku = name[:3].upper() + str(int(datetime.now().timestamp()))[-4:]
 
             db.execute("""
                 INSERT INTO products(name, sku, price, stock, category_id, supplier_id)
@@ -236,35 +217,30 @@ def products():
                            categories=categories, suppliers=suppliers)
 
 
-# ---------------------- SUPPLIERS ------------------------
+# --------------------------- SUPPLIERS -------------------------
 @app.route("/suppliers", methods=["GET", "POST"])
 def suppliers():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
-
         if request.method == "POST":
             name = request.form["name"]
             phone = request.form["phone"]
-
-            db.execute(
-                "INSERT INTO suppliers(name, phone) VALUES(?, ?)",
-                (name, phone)
-            )
+            db.execute("INSERT INTO suppliers(name, phone) VALUES(?,?)", (name, phone))
 
         suppliers = db.execute("SELECT * FROM suppliers").fetchall()
 
     return render_template("suppliers.html", suppliers=suppliers)
-# ---------------------- STOCK IN ------------------------
 
+
+# --------------------------- STOCK IN --------------------------
 @app.route("/stockin", methods=["GET", "POST"])
 def stock_in():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
-
         if request.method == "POST":
             product = request.form["product"]
             qty = int(request.form["qty"])
@@ -279,24 +255,22 @@ def stock_in():
     return render_template("stockin.html", products=products)
 
 
-# ---------------------- STOCK OUT ------------------------
-
+# --------------------------- STOCK OUT -------------------------
 @app.route("/stockout", methods=["GET", "POST"])
 def stock_out():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
-
         if request.method == "POST":
             product = request.form["product"]
             qty = int(request.form["qty"])
-            date = datetime.now().strftime("%Y-%m-%d")
 
-            # prevent negative
             current = db.execute("SELECT stock FROM products WHERE id=?", (product,)).fetchone()[0]
             if qty > current:
                 qty = current
+
+            date = datetime.now().strftime("%Y-%m-%d")
 
             db.execute("INSERT INTO stock_out(product_id, quantity, date) VALUES(?,?,?)",
                        (product, qty, date))
@@ -307,24 +281,18 @@ def stock_out():
     return render_template("stockout.html", products=products)
 
 
-# ---------------------- SALES (POS STYLE) ------------------------
-
+# ----------------------------- SALES ---------------------------
 @app.route("/sales", methods=["GET", "POST"])
 def sales():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
-
         if request.method == "POST":
             product_id = request.form["product"]
             qty = int(request.form["qty"])
 
-            product = db.execute("SELECT price, stock FROM products WHERE id=?", (product_id,)).fetchone()
-            if not product:
-                return redirect("/sales")
-
-            price, stock = product
+            price, stock = db.execute("SELECT price, stock FROM products WHERE id=?", (product_id,)).fetchone()
 
             if qty > stock:
                 qty = stock
@@ -332,8 +300,10 @@ def sales():
             total = qty * price
             date = datetime.now().strftime("%Y-%m-%d")
 
-            db.execute("INSERT INTO sales(product_id, quantity, total, date) VALUES(?,?,?,?)",
-                       (product_id, qty, total, date))
+            db.execute(
+                "INSERT INTO sales(product_id, quantity, total, date) VALUES(?,?,?,?)",
+                (product_id, qty, total, date)
+            )
             db.execute("UPDATE products SET stock = stock - ? WHERE id=?", (qty, product_id))
 
         products = db.execute("SELECT * FROM products").fetchall()
@@ -341,22 +311,19 @@ def sales():
     return render_template("sales.html", products=products)
 
 
-# ---------------------- REPORTS ------------------------
+# ----------------------------- REPORTS ---------------------------
 @app.route("/reports")
 def reports():
     if login_required():
         return redirect("/")
 
     with get_db() as db:
-
-        # Sales list
         sales = db.execute("""
             SELECT sales.date, products.name, sales.quantity, sales.total
             FROM sales
             JOIN products ON sales.product_id = products.id
         """).fetchall()
 
-        # Sales by product for bar chart
         bar_data = db.execute("""
             SELECT products.name, SUM(sales.total)
             FROM sales
@@ -367,25 +334,22 @@ def reports():
         labels = [row[0] for row in bar_data]
         totals = [row[1] for row in bar_data]
 
-        # Stock distribution for pie chart
-        pie_data = db.execute("""
-            SELECT name, stock FROM products
-        """).fetchall()
+        pie_data = db.execute("SELECT name, stock FROM products").fetchall()
 
     return render_template("reports.html",
                            sales=sales,
                            labels=labels,
                            totals=totals,
                            pie_data=pie_data)
-# ---------------------- LOGOUT ------------------------
 
+
+# ----------------------------- LOGOUT ---------------------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
 
-# RUN
+# ----------------------------- RUN ---------------------------
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)

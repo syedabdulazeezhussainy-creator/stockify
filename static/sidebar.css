@@ -71,3 +71,38 @@
         width: 100%;
     }
 }
+/* HIDE SIDEBAR ON MOBILE */
+@media (max-width: 900px) {
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100vh;
+        width: 240px;
+        transition: 0.3s ease-in-out;
+        z-index: 1000;
+    }
+    .sidebar.open {
+        left: 0;
+    }
+
+    /* Show menu button */
+    .menu-btn {
+        display: block;
+        position: fixed;
+        left: 15px;
+        top: 15px;
+        background: #1a2b5f;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: white;
+        z-index: 1100;
+        border: none;
+    }
+
+    /* Move content */
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}

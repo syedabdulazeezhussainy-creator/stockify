@@ -6,11 +6,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
 <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -56,6 +58,10 @@ function toggleSidebar() {
     document.querySelector(".sidebar").classList.toggle("open");
 }
 </script>
-
+<script>
+function toggleMenu(){
+    document.querySelector(".sidebar").classList.toggle("open");
+}
+</script>
 </body>
 </html>

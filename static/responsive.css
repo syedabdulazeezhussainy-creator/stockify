@@ -1,0 +1,46 @@
+/* GLOBAL MOBILE UI FIXES */
+@media (max-width: 768px) {
+
+    body {
+        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
+        background: #eef3fb;
+    }
+
+    /* Page layout adjustment */
+    .page-container {
+        padding: 15px;
+    }
+
+    /* Cards smaller on mobile */
+    .card {
+        padding: 15px !important;
+        margin-bottom: 18px;
+    }
+
+    /* Tables scroll horizontally */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    /* Buttons bigger for touch */
+    button {
+        padding: 14px !important;
+        font-size: 16px !important;
+    }
+
+    /* Inputs comfortable size */
+    input, select {
+        padding: 12px !important;
+        font-size: 15px !important;
+    }
+
+    /* Charts responsive */
+    canvas {
+        width: 100% !important;
+        height: auto !important;
+    }
+}

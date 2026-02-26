@@ -143,6 +143,16 @@ select {
     border: none;
     padding: 10px;
 }
+@media(max-width: 450px){
+    .glass {
+        width: 90%;
+        padding: 25px;
+    }
+
+    .title {
+        font-size: 22px;
+    }
+}
 
 select option {
     background: #ffffff;
