@@ -1,44 +1,76 @@
-/* GLOBAL MOBILE UI FIXES */
+/* GLOBAL MOBILE OPTIMIZATION */
 @media (max-width: 768px) {
 
     body {
-        padding: 0;
-        margin: 0;
+        background: #f3f6fb; /* light soft blue */
+        color: #1a1a1a !important; /* dark text for visibility */
         overflow-x: hidden;
-        background: #eef3fb;
+        margin: 0;
     }
 
-    /* Page layout adjustment */
+    /* fix hidden text */
+    * {
+        color: #1a1a1a !important;
+    }
+
     .page-container {
         padding: 15px;
     }
 
-    /* Cards smaller on mobile */
+    /* CARDS */
     .card {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
         padding: 15px !important;
-        margin-bottom: 18px;
+        border-radius: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
-    /* Tables scroll horizontally */
+    /* SIDEBAR */
+    .sidebar {
+        background: #1a2b5f !important;
+        color: white !important;
+    }
+    .sidebar a {
+        color: #e0e6ff !important;
+    }
+
+    /* BUTTONS */
+    button {
+        background: #1a2b5f !important;
+        color: white !important;
+        padding: 14px;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    /* INPUTS */
+    input, select {
+        background: white !important;
+        color: #1a1a1a !important;
+        border: 1px solid #c9d6f0 !important;
+        padding: 12px;
+        font-size: 15px;
+        border-radius: 10px;
+    }
+
+    /* TABLES */
     table {
         display: block;
         overflow-x: auto;
-        white-space: nowrap;
+        background: white !important;
+        border-radius: 10px;
+    }
+    th {
+        background: #1a2b5f !important;
+        color: white !important;
+    }
+    td {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
     }
 
-    /* Buttons bigger for touch */
-    button {
-        padding: 14px !important;
-        font-size: 16px !important;
-    }
-
-    /* Inputs comfortable size */
-    input, select {
-        padding: 12px !important;
-        font-size: 15px !important;
-    }
-
-    /* Charts responsive */
+    /* CHARTS */
     canvas {
         width: 100% !important;
         height: auto !important;

@@ -1,47 +1,33 @@
 body {
     margin: 0;
-    height: 100vh;
-    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    background: linear-gradient(135deg, #1a2b5f, #3c5fdd);
     display: flex;
-    align-items: center;
     justify-content: center;
-    font-family: "Segoe UI", sans-serif;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
     color: white;
+    font-family: Poppins, sans-serif;
 }
 
-.splash-container {
-    text-align: center;
-    animation: fadeIn 1.5s ease;
+.title {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    animation: fadeInUp 1.2s ease;
 }
 
-.logo {
-    font-size: 90px;
-    animation: bounce 2s infinite;
-}
-
-h1 {
-    font-size: 48px;
-    margin: 10px 0;
-}
-
-p {
+.subtitle {
     font-size: 18px;
-    opacity: 0.9;
+    opacity: 0;
+    animation: fadeIn 2s forwards;
 }
 
-/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+    to { opacity: 1; }
 }

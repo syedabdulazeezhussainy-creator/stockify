@@ -6,7 +6,9 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "supersecret123"
 
-
+@app.route("/")
+def splash():
+    return render_template("splash.html")
 # ------------------ MULTI-COMPANY DATABASE ------------------
 def get_db():
     """Returns the ACTIVE company DB"""
@@ -114,13 +116,10 @@ def init_db(db_name):
 
 
 # --------------------------- LOGIN ---------------------------
+@app.route("/login", methods=["GET", "POST"])
 def login_required():
-    return "user" not in session
-
-
-@app.route("/", methods=["GET", "POST"])
-def login():
     if request.method == "POST":
+
         company_name = request.form["company_name"]
         gst = request.form["gst"]
         category = request.form["category"]
@@ -128,18 +127,16 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        # Generate DB name for company
+        # Create DB file based on company name
         db_name = f"stockify_{company_name.replace(' ', '_').lower()}.db"
         session["db_name"] = db_name
 
-        # Create DB if new
+        # Initialize DB if new company
         init_db(db_name)
 
-        # Validate user
         with sqlite3.connect(db_name) as db:
             user = db.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
 
-            # Save company info
             db.execute("DELETE FROM company")
             db.execute("INSERT INTO company(name, gst, category) VALUES(?,?,?)",
                        (company_name, gst, category))
@@ -149,7 +146,6 @@ def login():
             return redirect("/dashboard")
 
     return render_template("login.html")
-
 
 # ------------------------- DASHBOARD -------------------------
 @app.route("/dashboard")
