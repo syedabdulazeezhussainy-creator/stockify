@@ -2,67 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login – Stockify</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockify – Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <h2>Welcome to <span>Stockify</span></h2>
+            <p class="sub">Smart Inventory Management</p>
 
-<body>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="error-box">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-<!-- Background Animation -->
-<div class="bg"></div>
-<div class="bg bg2"></div>
-<div class="bg bg3"></div>
-
-<div class="login-container fade-in">
-
-    <div class="login-card glass">
-
-        <h2 class="title">Welcome to <span>Stockify</span></h2>
-        <p class="subtitle">Modern Inventory & Billing Application</p>
-
-        <form method="POST">
-
-            <h3 class="section-label">Company Details</h3>
-
-            <div class="input-group">
-                <span class="icon">🏢</span>
+            <form method="POST" action="/login">
                 <input type="text" name="company_name" placeholder="Company Name" required>
-            </div>
-
-            <div class="input-group">
-                <span class="icon">🧾</span>
                 <input type="text" name="gst" placeholder="GST Number" required>
-            </div>
-
-            <div class="input-group">
-                <span class="icon">📦</span>
                 <select name="category" required>
-                    <option value="">Select Business Type</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Clothing">Clothing</option>
-                    <option value="Hardware">Hardware</option>
-                    <option value="Food Items">Food Items</option>
-                    <option value="Vehicles">Vehicles</option>
+                    <option value="">Select Business Category</option>
+                    <option>Electronics</option>
+                    <option>Clothing</option>
+                    <option>Vehicles</option>
+                    <option>Hardware</option>
+                    <option>Food Items</option>
                 </select>
-            </div>
-
-            <h3 class="section-label">Login Details</h3>
-
-            <div class="input-group">
-                <span class="icon">👤</span>
                 <input type="text" name="username" placeholder="Username" required>
-            </div>
-
-            <div class="input-group">
-                <span class="icon">🔒</span>
                 <input type="password" name="password" placeholder="Password" required>
-            </div>
-
-            <button class="login-btn">Sign In</button>
-
-        </form>
+                <button type="submit" class="btn-login">Sign In</button>
+            </form>
+        </div>
     </div>
-</div>
-
 </body>
 </html>

@@ -1,21 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Welcome</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='splash.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockify – Welcome</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="splash-page">
+    <div class="center">
+        <h1 class="title">STOCKIFY</h1>
+        <p class="subtitle">Smart Inventory Management</p>
+    </div>
 
-<div class="center">
-    <h1 class="title">STOCKIFY</h1>
-    <p class="subtitle">Smart Inventory Management</p>
-</div>
-
-<script>
-setTimeout(() => {
-    window.location.href = "/login";
-}, 2000); // 2 seconds
-</script>
-
+    <script>
+        setTimeout(() => {
+            window.location.href = "/login";
+        }, 2000);
+    </script>
 </body>
 </html>

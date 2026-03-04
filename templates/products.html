@@ -1,14 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Products</h2>
 
-<h2>Products</h2>
-
-<div class="card">
+<div class="card form-card">
     <h3>Add New Product</h3>
-
-    <form method="POST">
+    <form method="POST" action="/products">
+        <label>Product Name</label>
         <input type="text" name="name" placeholder="Product Name" required>
 
+        <label>Selling Price (₹)</label>
+        <input type="number" step="0.01" name="price" placeholder="Price" required>
+
+        <label>Category</label>
         <select name="category" required>
             <option value="">Select Category</option>
             {% for c in categories %}
@@ -16,6 +19,7 @@
             {% endfor %}
         </select>
 
+        <label>Supplier</label>
         <select name="supplier" required>
             <option value="">Select Supplier</option>
             {% for s in suppliers %}
@@ -23,38 +27,37 @@
             {% endfor %}
         </select>
 
-        <input type="number" step="0.01" name="price" placeholder="Price" required>
-
-        <button>Add Product</button>
+        <button type="submit">Add Product</button>
     </form>
 </div>
 
-
+<h2 class="page-subtitle">Product List</h2>
 <div class="card">
-    <h3>Product List</h3>
-
-    <table>
-        <tr>
-            <th>Name</th>
-            <th>SKU</th>
-            <th>Category</th>
-            <th>Supplier</th>
-            <th>Price</th>
-            <th>Stock</th>
-        </tr>
-
-        {% for p in products %}
-        <tr class="{% if p[6] < 5 %}low-stock{% endif %}">
-            <td>{{ p[1] }}</td>
-            <td>{{ p[2] }}</td>
-            <td>{{ p[8] }}</td>
-            <td>{{ p[9] }}</td>
-            <td>₹{{ p[5] }}</td>
-            <td>{{ p[6] }}</td>
-        </tr>
-        {% endfor %}
-
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Supplier</th>
+                    <th>Price (₹)</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr {% if p[4] < 5 %}class="low-stock"{% endif %}>
+                    <td>{{ p[1] }}</td>
+                    <td>{{ p[2] }}</td>
+                    <td>{{ p[5] }}</td>
+                    <td>{{ p[6] }}</td>
+                    <td>{{ p[3] }}</td>
+                    <td>{{ p[4] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
 {% endblock %}

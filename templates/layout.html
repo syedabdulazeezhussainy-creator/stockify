@@ -1,67 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{{ title if title else "Inventory System" }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockify - Inventory Management</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='sidebar.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Optional: Font Awesome for icons (if needed) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-
 <body>
-<button class="menu-btn" onclick="toggleSidebar()">☰</button>
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-    <h2 class="logo">Stockify</h2>
+    <!-- Mobile Menu Button -->
+    <button class="menu-btn" id="menuToggle" onclick="toggleMenu()">☰</button>
 
-    <a href="/dashboard">📊 Dashboard</a>
-    <a href="/products">📦 Products</a>
-    <a href="/suppliers">🏭 Suppliers</a>
-    <a href="/stockin">⬆ Stock In</a>
-    <a href="/stockout">⬇ Stock Out</a>
-    <a href="/sales">🛒 Sales</a>
-    <a href="/reports">📈 Reports</a>
-    <a href="/logout">🚪 Logout</a>
-</div>
-<div id="toast"></div>
-<script>
-function toast(msg){
-    let t = document.getElementById("toast");
-    t.innerText = msg;
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 3000);
-}
-</script>
-<!-- MAIN CONTENT -->
-<div class="main-content">
-    <div class="page-container">
-        {% block content %}
-        {% endblock %}
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebarMenu">
+        <div class="logo">Stockify</div>
+        <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        <a href="/products"><i class="fas fa-boxes"></i> Products</a>
+        <a href="/sales"><i class="fas fa-shopping-cart"></i> Sales</a>
+        <a href="/stockin"><i class="fas fa-arrow-down"></i> Stock In</a>
+        <a href="/stockout"><i class="fas fa-arrow-up"></i> Stock Out</a>
+        <a href="/suppliers"><i class="fas fa-truck"></i> Suppliers</a>
+        <a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a>
+        <a href="/tools"><i class="fas fa-tools"></i> Tools</a>
+        <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
-</div>
-<!-- LOADING SCREEN -->
-<div id="loader">
-    <div class="spinner"></div>
-</div>
 
-<script>
-window.onload = () => {
-    document.getElementById("loader").style.display = "none";
-};
-</script>
-<script>
-function toggleSidebar() {
-    document.querySelector(".sidebar").classList.toggle("open");
-}
-</script>
-<script>
-function toggleMenu(){
-    document.querySelector(".sidebar").classList.toggle("open");
-}
-</script>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('sidebarMenu').classList.toggle('open');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebarMenu');
+            const menuBtn = document.getElementById('menuToggle');
+            if (window.innerWidth <= 900 && sidebar.classList.contains('open') &&
+                !sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

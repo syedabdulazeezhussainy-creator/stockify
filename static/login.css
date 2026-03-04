@@ -1,44 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-
 body {
     margin: 0;
-    font-family: "Poppins", sans-serif;
-    background: linear-gradient(135deg, #bcd3ff, #dce8ff);
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #e2eeff, #bcd6ff);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.glass {
+.login-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.login-box {
+    background: white;
     width: 380px;
     padding: 35px;
-    background: rgba(255,255,255,0.8);
-    border-radius: 20px;
-    box-shadow: 0 10px 28px rgba(0,0,0,0.15);
-    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.15);
 }
 
-.title {
+h2 {
     text-align: center;
+    color: #1b3556;
     font-size: 26px;
-    color: #1a2b5f;
-    font-weight: 700;
+    margin-bottom: 5px;
 }
 
-.subtitle {
+h2 span {
+    color: #4a90e2;
+}
+
+.sub {
     text-align: center;
-    color: #5a6b99;
+    color: #517095;
+    margin-bottom: 20px;
 }
 
-.icon {
-    color: #1a2b5f;
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    border: 1px solid #c8d8f3;
+    background: #f7faff;
+    font-size: 15px;
 }
 
-.login-btn {
-    background: #1a2b5f;
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #4a90e2;
     color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-@media(max-width: 450px){
-    .glass {
-        width: 90%;
-        padding: 25px;
-    }
+.btn-login:hover {
+    background: #3d7ccc;
+}
+
+.error-box {
+    background: #ffdddd;
+    color: #bb0000;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    text-align: center;
 }

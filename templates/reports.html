@@ -1,86 +1,46 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Reports</h2>
 
-<h2>Reports</h2>
-
-<div class="grid">
-
-    <div class="card">
-        <h3>Sales per Product</h3>
-        <canvas id="barChart"></canvas>
-    </div>
-
-    <div class="card">
-        <h3>Stock Distribution</h3>
-        <canvas id="pieChart"></canvas>
-    </div>
-
+<div class="card">
+    <h3>Sales Summary</h3>
+    <canvas id="barChart" width="400" height="200"></canvas>
 </div>
 
 <div class="card">
-    <h3>Sales Trend</h3>
-    <canvas id="lineChart"></canvas>
-</div>
-
-<div class="card">
-    <h3>Sales Records</h3>
-    <table>
-        <tr>
-            <th>Date</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Total</th>
-        </tr>
-
-        {% for s in sales %}
-        <tr>
-            <td>{{ s[0] }}</td>
-            <td>{{ s[1] }}</td>
-            <td>{{ s[2] }}</td>
-            <td>₹{{ s[3] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <h3>Stock Distribution</h3>
+    <canvas id="pieChart" width="400" height="200"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-new Chart(document.getElementById("barChart"), {
-    type: "bar",
-    data: {
-        labels: {{ labels|tojson }},
-        datasets: [{
-            label: "Revenue",
-            data: {{ totals|tojson }},
-            backgroundColor: "#1a2b5f"
-        }]
-    }
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        // Bar chart
+        new Chart(document.getElementById("barChart"), {
+            type: "bar",
+            data: {
+                labels: {{ labels|tojson }},
+                datasets: [{
+                    label: "Sales (₹)",
+                    data: {{ totals|tojson }},
+                    backgroundColor: "#4a90e2"
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
 
-new Chart(document.getElementById("pieChart"), {
-    type: "pie",
-    data: {
-        labels: {{ pie_data|map(attribute=0)|list|tojson }},
-        datasets: [{
-            data: {{ pie_data|map(attribute=1)|list|tojson }},
-            backgroundColor: ["#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b"]
-        }]
-    }
-});
-
-new Chart(document.getElementById("lineChart"), {
-    type: "line",
-    data: {
-        labels: {{ labels|tojson }},
-        datasets: [{
-            data: {{ totals|tojson }},
-            borderColor: "#1a2b5f",
-            fill: false,
-            tension: 0.3
-        }]
-    }
-});
+        // Pie chart
+        new Chart(document.getElementById("pieChart"), {
+            type: "pie",
+            data: {
+                labels: [{% for p in pie_data %}"{{ p[0] }}",{% endfor %}],
+                datasets: [{
+                    data: [{% for p in pie_data %}{{ p[1] }},{% endfor %}],
+                    backgroundColor: ["#4a90e2", "#74b3ff", "#5cc6ff", "#3d7ccc", "#8ec6ff"]
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    });
 </script>
-
 {% endblock %}

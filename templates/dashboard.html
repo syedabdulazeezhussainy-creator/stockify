@@ -1,47 +1,29 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Dashboard</h2>
 
-<h2>Dashboard</h2>
-{% if low_stock_count > 0 %}
-<div class="alert">
-    ⚠ {{ low_stock_count }} products are low in stock!
-</div>
-{% endif %}
-
-<div class="card">
-    <h3>{{ session.company }}</h3>
-    <p>GST: {{ session.gst }}</p>
-    <p>Category: {{ session.category }}</p>
-</div>
-
-<div class="grid">
-    <div class="card">Total Products: {{ total_products }}</div>
-    <div class="card">Total Sales: ₹{{ total_sales }}</div>
-    <div class="card">Low Stock Items: {{ low_stock_count }}</div>
+<div class="dashboard-cards">
+    <div class="card dash-card">
+        <h3>Total Products</h3>
+        <p class="value">{{ total_products }}</p>
+    </div>
+    <div class="card dash-card">
+        <h3>Total Sales (₹)</h3>
+        <p class="value">{{ total_sales }}</p>
+    </div>
+    <div class="card dash-card">
+        <h3>Low Stock Items</h3>
+        <p class="value">{{ low_stock_count }}</p>
+    </div>
 </div>
 
-<canvas id="monthlyChart"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-new Chart(document.getElementById("monthlyChart"), {
-    type: "line",
-    data: {
-        labels: {{ month_labels }},
-        datasets: [{
-            label: "Monthly Sales",
-            data: {{ month_totals }},
-            borderColor: "#fff",
-            backgroundColor: "rgba(255,255,255,0.3)",
-            tension: 0.4,
-            fill: true
-        }]
-    }
-});
-</script>
-<script>
-toast("Product Added Successfully!");
-</script>
-
+<h2 class="page-subtitle">Quick Actions</h2>
+<div class="dashboard-actions">
+    <a href="/products" class="action-btn">Manage Products</a>
+    <a href="/sales" class="action-btn">Record Sale</a>
+    <a href="/stockin" class="action-btn">Stock In</a>
+    <a href="/stockout" class="action-btn">Stock Out</a>
+    <a href="/suppliers" class="action-btn">Suppliers</a>
+    <a href="/reports" class="action-btn">View Reports</a>
+</div>
 {% endblock %}

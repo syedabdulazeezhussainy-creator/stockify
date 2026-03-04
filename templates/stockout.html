@@ -1,22 +1,22 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Stock Out</h2>
 
-<h2>Stock Out</h2>
-
-<div class="card">
+<div class="card form-card">
     <h3>Reduce Stock</h3>
-
-    <form method="POST">
+    <form method="POST" action="/stockout">
+        <label>Select Product</label>
         <select name="product" required>
-            <option value="">Select Product</option>
+            <option value="">Choose Product</option>
             {% for p in products %}
-            <option value="{{ p[0] }}">{{ p[1] }} (Available: {{ p[6] }})</option>
+            <option value="{{ p[0] }}">{{ p[1] }} (Available: {{ p[5] }})</option>
             {% endfor %}
         </select>
 
-        <input type="number" name="qty" placeholder="Quantity" required>
-        <button>Update Stock</button>
+        <label>Quantity</label>
+        <input type="number" name="qty" placeholder="Enter Quantity" required>
+
+        <button type="submit">Reduce Stock</button>
     </form>
 </div>
-
 {% endblock %}

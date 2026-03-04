@@ -1,34 +1,39 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Suppliers</h2>
 
-<h2>Suppliers</h2>
-
-<div class="card">
+<div class="card form-card">
     <h3>Add Supplier</h3>
+    <form method="POST" action="/suppliers">
+        <label>Supplier Name</label>
+        <input type="text" name="name" placeholder="Enter Supplier Name" required>
 
-    <form method="POST">
-    <input type="text" name="name" placeholder="Supplier Name" required>
-    <input type="text" name="phone" placeholder="Phone Number" required>
-    <button>Add Supplier</button>
-</form>
+        <label>Phone Number</label>
+        <input type="text" name="phone" placeholder="Enter Phone Number" required>
+
+        <button type="submit">Add Supplier</button>
+    </form>
 </div>
 
+<h2 class="page-subtitle">Supplier List</h2>
 <div class="card">
-    <h3>Supplier List</h3>
-
-    <table>
-        <tr>
-    <th>Name</th>
-    <th>Phone</th>
-</tr>
-
-{% for s in suppliers %}
-<tr>
-    <td>{{ s[1] }}</td>
-    <td>{{ s[2] }}</td>
-</tr>
-{% endfor %}
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in suppliers %}
+                <tr>
+                    <td>{{ s[1] }}</td>
+                    <td>{{ s[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
 {% endblock %}

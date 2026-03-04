@@ -1,42 +1,22 @@
 {% extends "layout.html" %}
 {% block content %}
+<h2 class="page-title">Sales</h2>
 
-<h2>Sales (POS)</h2>
-
-<div class="card">
-    <h3>New Sale</h3>
-
-    <form method="POST">
-        <select name="product" id="productSelect" required>
-            <option value="">Select Product</option>
+<div class="card form-card">
+    <h3>Record Sale</h3>
+    <form method="POST" action="/sales">
+        <label>Select Product</label>
+        <select name="product" required>
+            <option value="">Choose Product</option>
             {% for p in products %}
-            <option value="{{ p[0] }}" data-price="{{ p[5] }}" data-stock="{{ p[6] }}">
-                {{ p[1] }} (₹{{ p[5] }}, Stock: {{ p[6] }})
-            </option>
+            <option value="{{ p[0] }}">{{ p[1] }} – ₹{{ p[3] }} (Stock: {{ p[4] }})</option>
             {% endfor %}
         </select>
 
-        <input type="number" name="qty" id="qty" placeholder="Quantity" required>
+        <label>Quantity</label>
+        <input type="number" name="qty" placeholder="Enter Quantity" required>
 
-        <input type="text" id="totalBox" placeholder="Total Amount" disabled>
-
-        <button>Complete Sale</button>
+        <button type="submit">Record Sale</button>
     </form>
 </div>
-
-<script>
-const priceBox = document.getElementById("productSelect");
-const qtyBox = document.getElementById("qty");
-const totalBox = document.getElementById("totalBox");
-
-qtyBox.addEventListener("input", updateTotal);
-priceBox.addEventListener("change", updateTotal);
-
-function updateTotal() {
-    let price = priceBox.selectedOptions[0]?.dataset.price;
-    let qty = qtyBox.value || 0;
-    totalBox.value = price ? "₹" + (qty * price) : "";
-}
-</script>
-
 {% endblock %}
