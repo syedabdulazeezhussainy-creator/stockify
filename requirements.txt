@@ -1,4 +1,5 @@
 Flask
 bcrypt
+openpyxl
 reportlab
 gunicorn

@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Returns</h2>
+
+<div class="card form-card">
+    <h3>Process Return</h3>
+    <form method="POST" action="/returns">
+        <label>Sale ID</label>
+        <select name="sale_id" required>
+            <option value="">Select Sale</option>
+            {% for s in sales %}
+            <option value="{{ s[0] }}">Sale #{{ s[0] }} - Product ID {{ s[1] }} (₹{{ s[2] }})</option>
+            {% endfor %}
+        </select>
+
+        <label>Reason</label>
+        <input type="text" name="reason" required>
+
+        <label>Refund Amount</label>
+        <input type="number" step="0.01" name="refund_amount" required>
+
+        <button type="submit">Process Return</button>
+    </form>
+</div>
+
+<h2 class="page-subtitle">Return List</h2>
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Reason</th>
+                    <th>Refund</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in returns %}
+                <tr>
+                    <td>{{ r[1] }}</td>
+                    <td>{{ r[2] }}</td>
+                    <td>{{ r[3] }}</td>
+                    <td>{{ r[4] }}</td>
+                    <td>{{ r[5] }}</td>
+                    <td>{{ r[6] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

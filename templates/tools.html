@@ -3,20 +3,38 @@
 <h2 class="page-title">Tools & Utilities</h2>
 
 <div class="tool-grid">
+    <!-- Export tools – available to all users -->
+    <div class="card tool-card">
+        <h3><i class="fas fa-file-csv"></i> Export Products</h3>
+        <p>Export all product data to Excel.</p>
+        <a href="/export/products" class="btn">Export</a>
+    </div>
+    <div class="card tool-card">
+        <h3><i class="fas fa-file-csv"></i> Export Customers</h3>
+        <p>Export customer list to Excel.</p>
+        <a href="/export/customers" class="btn">Export</a>
+    </div>
+    <div class="card tool-card">
+        <h3><i class="fas fa-file-csv"></i> Export Sales</h3>
+        <p>Export sales data to Excel.</p>
+        <a href="/export/sales" class="btn">Export</a>
+    </div>
+
+    {% if session.role == 'admin' %}
+    <!-- Admin‑only tools -->
     <div class="card tool-card">
         <h3><i class="fas fa-database"></i> Backup Database</h3>
         <p>Download a backup of your company database.</p>
-        <button class="btn" onclick="alert('Backup feature coming soon!')">Download</button>
+        <a href="/backup-db" class="btn">Download Backup</a>
     </div>
     <div class="card tool-card">
-        <h3><i class="fas fa-file-csv"></i> Export Products CSV</h3>
-        <p>Export all product data to CSV.</p>
-        <button class="btn" onclick="alert('Export feature coming soon!')">Export</button>
+        <h3><i class="fas fa-upload"></i> Import Products (CSV)</h3>
+        <p>Upload a CSV file to add products.<br>Format: Name,Price,Category,Supplier</p>
+        <form method="POST" action="/import-products" enctype="multipart/form-data">
+            <input type="file" name="csv_file" accept=".csv" required>
+            <button type="submit" class="btn">Import</button>
+        </form>
     </div>
-    <div class="card tool-card">
-        <h3><i class="fas fa-upload"></i> Import CSV</h3>
-        <p>Upload your CSV to import products.</p>
-        <button class="btn" onclick="alert('Import feature coming soon!')">Import</button>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

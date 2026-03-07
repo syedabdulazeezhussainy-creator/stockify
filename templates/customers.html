@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Customers</h2>
+
+<div class="card form-card">
+    <h3>Add New Customer</h3>
+    <form method="POST" action="/customers">
+        <label>Name</label>
+        <input type="text" name="name" required>
+        <label>Phone</label>
+        <input type="text" name="phone" required>
+        <label>Email</label>
+        <input type="email" name="email">
+        <label>Address</label>
+        <textarea name="address"></textarea>
+        <button type="submit">Add Customer</button>
+    </form>
+</div>
+
+<h2 class="page-subtitle">Customer List</h2>
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td>{{ c[1] }}</td>
+                    <td>{{ c[2] }}</td>
+                    <td>{{ c[3] }}</td>
+                    <td>{{ c[4] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

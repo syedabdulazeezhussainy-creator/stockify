@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Service Requests</h2>
+
+<div class="card form-card">
+    <h3>Log New Service</h3>
+    <form method="POST" action="/service">
+        <label>Product</label>
+        <select name="product" required>
+            <option value="">Select Product</option>
+            {% for p in products %}
+            <option value="{{ p[0] }}">{{ p[1] }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Customer</label>
+        <select name="customer" required>
+            <option value="">Select Customer</option>
+            {% for c in customers %}
+            <option value="{{ c[0] }}">{{ c[1] }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Issue Description</label>
+        <textarea name="issue" required></textarea>
+
+        <button type="submit">Log Service</button>
+    </form>
+</div>
+
+<h2 class="page-subtitle">Service List</h2>
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Issue</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in services %}
+                <tr>
+                    <td>{{ s[1] }}</td>
+                    <td>{{ s[2] }}</td>
+                    <td>{{ s[3] }}</td>
+                    <td>{{ s[4] }}</td>
+                    <td>{{ s[5] }}</td>
+                    <td>
+                        <form method="POST" action="/service/update/{{ s[0] }}" style="display:inline;">
+                            <select name="status">
+                                <option value="pending" {% if s[5] == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="in progress" {% if s[5] == 'in progress' %}selected{% endif %}>In Progress</option>
+                                <option value="completed" {% if s[5] == 'completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                            <input type="text" name="resolution" placeholder="Resolution">
+                            <input type="number" step="0.01" name="cost" placeholder="Cost">
+                            <button type="submit" class="btn-sm">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

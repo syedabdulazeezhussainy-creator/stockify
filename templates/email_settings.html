@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Email Settings</h2>
+
+<div class="card form-card">
+    <h3>SMTP Configuration</h3>
+    <form method="POST" action="/email-settings">
+        <label>SMTP Host</label>
+        <input type="text" name="host" value="{{ settings[0] if settings }}" placeholder="smtp.gmail.com" required>
+
+        <label>Port</label>
+        <input type="number" name="port" value="{{ settings[1] if settings }}" placeholder="587" required>
+
+        <label>Username</label>
+        <input type="text" name="user" value="{{ settings[2] if settings }}" required>
+
+        <label>Password</label>
+        <input type="password" name="password" value="{{ settings[3] if settings }}" required>
+
+        <label>From Address</label>
+        <input type="email" name="from" value="{{ settings[4] if settings }}" required>
+
+        <button type="submit">Save Settings</button>
+    </form>
+</div>
+{% endblock %}

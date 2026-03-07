@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Warranty Management</h2>
+
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in warranties %}
+                <tr>
+                    <td>{{ w[1] }}</td>
+                    <td>{{ w[2] }}</td>
+                    <td>{{ w[3] }}</td>
+                    <td>{{ w[4] }}</td>
+                    <td>{{ w[5] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -9,14 +9,53 @@
         <select name="product" required>
             <option value="">Choose Product</option>
             {% for p in products %}
-            <option value="{{ p[0] }}">{{ p[1] }} – ₹{{ p[3] }} (Stock: {{ p[4] }})</option>
+            <option value="{{ p[0] }}">{{ p[1] }} – ₹{{ p[2] }} (Stock: {{ p[3] }})</option>
+            {% endfor %}
+        </select>
+
+        <label>Customer (optional)</label>
+        <select name="customer">
+            <option value="">Walk-in Customer</option>
+            {% for c in customers %}
+            <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }})</option>
             {% endfor %}
         </select>
 
         <label>Quantity</label>
         <input type="number" name="qty" placeholder="Enter Quantity" required>
 
+        <label>Warranty (months)</label>
+        <input type="number" name="warranty_months" value="0" min="0">
+
         <button type="submit">Record Sale</button>
     </form>
+</div>
+
+<h2 class="page-subtitle">Recent Sales</h2>
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Quantity</th>
+                    <th>Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr>
+                    <td>{{ sale[0] }}</td>
+                    <td>{{ sale[1] }}</td>
+                    <td>{{ sale[2] or 'Walk-in' }}</td>
+                    <td>{{ sale[3] }}</td>
+                    <td>{{ sale[4] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

@@ -3,7 +3,7 @@
 <h2 class="page-title">Reports</h2>
 
 <div class="card">
-    <h3>Sales Summary</h3>
+    <h3>Sales by Product</h3>
     <canvas id="barChart" width="400" height="200"></canvas>
 </div>
 
@@ -12,10 +12,9 @@
     <canvas id="pieChart" width="400" height="200"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Bar chart
         new Chart(document.getElementById("barChart"), {
             type: "bar",
             data: {
@@ -29,7 +28,6 @@
             options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Pie chart
         new Chart(document.getElementById("pieChart"), {
             type: "pie",
             data: {

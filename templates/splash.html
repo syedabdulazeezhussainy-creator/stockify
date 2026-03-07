@@ -5,18 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stockify – Welcome</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2, #6b8cff);
+            background-size: 300% 300%;
+            animation: gradientBG 10s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .center {
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .title {
+            font-size: 60px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            letter-spacing: 4px;
+            margin: 0;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+            to { text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 30px #4a90e2; }
+        }
+        .subtitle {
+            font-size: 22px;
+            color: rgba(255,255,255,0.9);
+            margin-top: 10px;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.5s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn-group {
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 1s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 14px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
-<body class="splash-page">
+<body>
     <div class="center">
         <h1 class="title">STOCKIFY</h1>
         <p class="subtitle">Smart Inventory Management</p>
+        <div class="btn-group">
+            <a href="/admin-login" class="btn">Admin Login</a>
+            <a href="/staff-login" class="btn">Staff Login</a>
+        </div>
     </div>
-
-    <script>
-        setTimeout(() => {
-            window.location.href = "/login";
-        }, 2000);
-    </script>
 </body>
 </html>

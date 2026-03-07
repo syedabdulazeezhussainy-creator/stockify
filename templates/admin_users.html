@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="page-title">Manage Users</h2>
+
+<div class="card form-card">
+    <h3>Add New User</h3>
+    <form method="POST" action="/admin/users">
+        <label>Username</label>
+        <input type="text" name="username" required>
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
+        <label>Email</label>
+        <input type="email" name="email">
+
+        <label>Role</label>
+        <select name="role">
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+        </select>
+
+        <button type="submit">Create User</button>
+    </form>
+</div>
+
+<h2 class="page-subtitle">Existing Users</h2>
+<div class="card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u[0] }}</td>
+                    <td>{{ u[1] }}</td>
+                    <td>{{ u[3] }}</td>
+                    <td>{{ u[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

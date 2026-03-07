@@ -1,5 +1,6 @@
-// Small UI enhancements
+// UI enhancements
 document.addEventListener("DOMContentLoaded", () => {
+    // Button click animation
     document.querySelectorAll("button:not(.menu-btn)").forEach(btn => {
         btn.addEventListener("click", () => {
             btn.style.transform = "scale(0.95)";

@@ -15,15 +15,40 @@
         <h3>Low Stock Items</h3>
         <p class="value">{{ low_stock_count }}</p>
     </div>
+    {% if session.role == 'admin' %}
+    <div class="card dash-card">
+        <h3>Pending Services</h3>
+        <p class="value">{{ pending_services }}</p>
+    </div>
+    <div class="card dash-card">
+        <h3>Active Warranties</h3>
+        <p class="value">{{ active_warranties }}</p>
+    </div>
+    <div class="card dash-card">
+        <h3>Expiring Soon (7d)</h3>
+        <p class="value">{{ expiring_warranties }}</p>
+    </div>
+    {% else %}
+    <div class="card dash-card">
+        <h3>Today's Sales (₹)</h3>
+        <p class="value">{{ today_sales }}</p>
+    </div>
+    <div class="card dash-card">
+        <h3>Pending Services</h3>
+        <p class="value">{{ pending_services }}</p>
+    </div>
+    {% endif %}
 </div>
 
 <h2 class="page-subtitle">Quick Actions</h2>
 <div class="dashboard-actions">
-    <a href="/products" class="action-btn">Manage Products</a>
+    {% if session.role == 'admin' %}
+        <a href="/products" class="action-btn">Manage Products</a>
+        <a href="/suppliers" class="action-btn">Suppliers</a>
+    {% endif %}
     <a href="/sales" class="action-btn">Record Sale</a>
-    <a href="/stockin" class="action-btn">Stock In</a>
-    <a href="/stockout" class="action-btn">Stock Out</a>
-    <a href="/suppliers" class="action-btn">Suppliers</a>
-    <a href="/reports" class="action-btn">View Reports</a>
+    <a href="/customers" class="action-btn">Customers</a>
+    <a href="/service" class="action-btn">Service</a>
+    <a href="/reports" class="action-btn">Reports</a>
 </div>
 {% endblock %}
