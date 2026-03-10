@@ -3,6 +3,9 @@ import sqlite3
 import bcrypt
 import csv
 import shutil
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from functools import wraps
 import glob
@@ -45,7 +48,6 @@ def log_activity(action, details=""):
     """Log user activity – uses its own connection, so call it outside other db blocks."""
     if "user" not in session:
         return
-    # Open a separate connection – ensure no other connection is open
     with get_db() as conn:
         conn.execute("""
             INSERT INTO activity_log (user_id, username, action, details, timestamp)
@@ -57,7 +59,35 @@ def log_activity(action, details=""):
             details,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
-
+def send_email(recipient, subject, body):
+    """Send email using company SMTP settings and environment password."""
+    with get_db() as conn:
+        settings = conn.execute("SELECT email_host, email_port, email_user, email_from FROM company").fetchone()
+    if not settings or not settings[0]:
+        print("❌ Email error: SMTP settings not found in database")
+        return False
+    host, port, user, from_addr = settings
+    password = os.environ.get("EMAIL_PASSWORD")
+    if not password:
+        print("❌ Email error: EMAIL_PASSWORD environment variable not set")
+        return False
+    print(f"📧 Attempting to send email via {host}:{port} as {user}")
+    msg = MIMEMultipart()
+    msg['From'] = from_addr or user
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'html'))
+    try:
+        server = smtplib.SMTP(host, port)
+        server.starttls()
+        server.login(user, password)
+        server.send_message(msg)
+        server.quit()
+        print(f"✅ Email sent successfully to {recipient}")
+        return True
+    except Exception as e:
+        print(f"❌ Email error: {e}")
+        return False
 def get_company_list():
     """Return list of existing company databases."""
     db_files = glob.glob("instance/stockify_*.db")
@@ -68,7 +98,7 @@ def get_company_list():
     return companies
 
 def init_company_db(db_name):
-    """Create all tables for a new company database (no email, no barcode)."""
+    """Create all tables for a new company database (with email columns)."""
     with sqlite3.connect(f"instance/{db_name}") as conn:
         # Users
         conn.execute("""
@@ -85,15 +115,29 @@ def init_company_db(db_name):
         except sqlite3.OperationalError:
             pass
 
-        # Company info
+        # Company info (with email settings)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS company (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 gst TEXT,
-                category TEXT
+                category TEXT,
+                email_host TEXT,
+                email_port INTEGER,
+                email_user TEXT,
+                email_password TEXT,
+                email_from TEXT
             )
         """)
+        # Add email columns if they don't exist (for older DBs)
+        try:
+            conn.execute("ALTER TABLE company ADD COLUMN email_host TEXT")
+            conn.execute("ALTER TABLE company ADD COLUMN email_port INTEGER")
+            conn.execute("ALTER TABLE company ADD COLUMN email_user TEXT")
+            conn.execute("ALTER TABLE company ADD COLUMN email_password TEXT")
+            conn.execute("ALTER TABLE company ADD COLUMN email_from TEXT")
+        except sqlite3.OperationalError:
+            pass
 
         # Categories
         conn.execute("""
@@ -125,7 +169,7 @@ def init_company_db(db_name):
             )
         """)
 
-        # Stock movements (kept for history)
+        # Stock movements
         conn.execute("""
             CREATE TABLE IF NOT EXISTS stock_in (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -235,34 +279,6 @@ def init_company_db(db_name):
             conn.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (cat,))
 
 # ------------------ ROUTES ------------------
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    try:
-        with get_db() as conn:
-            total_products = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-            total_sales = conn.execute("SELECT SUM(total) FROM sales").fetchone()[0] or 0
-            low_stock = conn.execute("SELECT COUNT(*) FROM products WHERE stock < 5").fetchone()[0]
-            pending_services = conn.execute("SELECT COUNT(*) FROM services WHERE status='pending'").fetchone()[0]
-            active_warranties = conn.execute("SELECT COUNT(*) FROM warranties WHERE status='active'").fetchone()[0]
-            today = datetime.now().strftime("%Y-%m-%d")
-            today_sales = conn.execute("SELECT SUM(total) FROM sales WHERE date=?", (today,)).fetchone()[0] or 0
-            expiring = conn.execute("""
-                SELECT COUNT(*) FROM warranties
-                WHERE status='active' AND date(end_date) BETWEEN date('now') AND date('now', '+7 days')
-            """).fetchone()[0]
-        return render_template("dashboard.html",
-                               total_products=total_products,
-                               total_sales=total_sales,
-                               low_stock_count=low_stock,
-                               pending_services=pending_services,
-                               active_warranties=active_warranties,
-                               today_sales=today_sales,
-                               expiring_warranties=expiring)
-    except Exception as e:
-        flash(f"Dashboard error: {str(e)}", "danger")
-        return redirect("/staff-login")
-
 @app.route("/")
 def splash():
     return render_template("splash.html")
@@ -331,6 +347,30 @@ def login():
                     flash("Invalid staff credentials", "danger")
                     return redirect("/staff-login")
     return redirect("/")
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    with get_db() as conn:
+        total_products = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+        total_sales = conn.execute("SELECT SUM(total) FROM sales").fetchone()[0] or 0
+        low_stock = conn.execute("SELECT COUNT(*) FROM products WHERE stock < 5").fetchone()[0]
+        pending_services = conn.execute("SELECT COUNT(*) FROM services WHERE status='pending'").fetchone()[0]
+        active_warranties = conn.execute("SELECT COUNT(*) FROM warranties WHERE status='active'").fetchone()[0]
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_sales = conn.execute("SELECT SUM(total) FROM sales WHERE date=?", (today,)).fetchone()[0] or 0
+        expiring = conn.execute("""
+            SELECT COUNT(*) FROM warranties
+            WHERE status='active' AND date(end_date) BETWEEN date('now') AND date('now', '+7 days')
+        """).fetchone()[0]
+    return render_template("dashboard.html",
+                           total_products=total_products,
+                           total_sales=total_sales,
+                           low_stock_count=low_stock,
+                           pending_services=pending_services,
+                           active_warranties=active_warranties,
+                           today_sales=today_sales,
+                           expiring_warranties=expiring)
 
 # ------------------ ADMIN ONLY ROUTES ------------------
 @app.route("/products", methods=["GET", "POST"])
@@ -438,6 +478,23 @@ def admin_users():
         users = conn.execute("SELECT id, username, role, email FROM users").fetchall()
     return render_template("admin_users.html", users=users)
 
+@app.route("/email-settings", methods=["GET", "POST"])
+@login_required
+@admin_required
+def email_settings():
+    with get_db() as conn:
+        if request.method == "POST":
+            host = request.form["host"]
+            port = int(request.form["port"])
+            user = request.form["user"]
+            from_addr = request.form["from"]
+            print(f"Saved settings: host={host}, port={port}, user={user}, from={from_addr}")
+            conn.execute("""
+                UPDATE company SET email_host=?, email_port=?, email_user=?, email_from=?
+            """, (host, port, user, from_addr))
+            flash("Email settings saved. Password is taken from environment variable.", "success")
+        settings = conn.execute("SELECT email_host, email_port, email_user, email_from FROM company").fetchone()
+    return render_template("email_settings.html", settings=settings)
 @app.route("/activity-log")
 @login_required
 @admin_required
@@ -485,6 +542,36 @@ def sales():
                     INSERT INTO warranties (sale_id, product_id, customer_id, start_date, end_date, status)
                     VALUES (?, ?, ?, ?, ?, 'active')
                 """, (sale_id, product_id, customer_id, start_date, end_date))
+
+            # Send email notification if customer has email
+            if customer_id:
+                customer = conn.execute("SELECT email, name FROM customers WHERE id=?", (customer_id,)).fetchone()
+                if customer and customer[0]:
+                    product_name = conn.execute("SELECT name FROM products WHERE id=?", (product_id,)).fetchone()[0]
+                    subject = f"Your Order Confirmation – {product_name}"
+                    body = f"""
+                    <html>
+                    <body style="font-family: Arial, sans-serif;">
+                        <h2>Thank you for your purchase, {customer[1]}!</h2>
+                        <p>Here are your order details:</p>
+                        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+                            <tr><th>Product</th><td>{product_name}</td></tr>
+                            <tr><th>Quantity</th><td>{qty}</td></tr>
+                            <tr><th>Total Amount</th><td>₹{total}</td></tr>
+                            <tr><th>Warranty</th><td>{warranty_months} months</td></tr>
+                            <tr><th>Order Date</th><td>{date}</td></tr>
+                        </table>
+                        <p>We hope you enjoy your purchase!</p>
+                        <p>– Stockify Team</p>
+                    </body>
+                    </html>
+                    """
+                    sent = send_email(customer[0], subject, body)
+                    if sent:
+                        flash("Email confirmation sent to customer.", "success")
+                    else:
+                        flash("Email not sent – SMTP not configured or invalid.", "warning")
+
         log_activity("SALE", f"Sale of {qty} units of product ID {product_id} to customer {customer_id}")
         flash("Sale recorded successfully!", "success")
 
@@ -760,5 +847,6 @@ def logout():
     return redirect("/staff-login")
 
 if __name__ == "__main__":
+    os.makedirs("instance", exist_ok=True)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
