@@ -2,25 +2,23 @@ import os
 import sqlite3
 import bcrypt
 import csv
-import shutil
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from functools import wraps
 import glob
-from flask import Flask, render_template, request, redirect, session, flash, send_file, jsonify
+from flask import Flask, render_template, request, redirect, session, flash, send_file
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
 from io import BytesIO, StringIO
+import qrcode
+import base64
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
-app.permanent_session_lifetime = 3600  # 1 hour
+app.permanent_session_lifetime = 3600
 
 # ------------------ HELPER FUNCTIONS ------------------
 def get_db():
-    """Return connection to the active company database."""
     db_name = session.get("db_name")
     if not db_name:
         return sqlite3.connect("instance/default.db")
@@ -28,24 +26,23 @@ def get_db():
 
 def login_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated(*args, **kwargs):
         if "user" not in session:
             flash("Please log in first.", "warning")
             return redirect("/staff-login")
         return f(*args, **kwargs)
-    return decorated_function
+    return decorated
 
 def admin_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated(*args, **kwargs):
         if session.get("role") != "admin":
             flash("Access denied. Admin only.", "danger")
             return redirect("/dashboard")
         return f(*args, **kwargs)
-    return decorated_function
+    return decorated
 
 def log_activity(action, details=""):
-    """Log user activity – uses its own connection, so call it outside other db blocks."""
     if "user" not in session:
         return
     with get_db() as conn:
@@ -59,37 +56,8 @@ def log_activity(action, details=""):
             details,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
-def send_email(recipient, subject, body):
-    """Send email using company SMTP settings and environment password."""
-    with get_db() as conn:
-        settings = conn.execute("SELECT email_host, email_port, email_user, email_from FROM company").fetchone()
-    if not settings or not settings[0]:
-        print("❌ Email error: SMTP settings not found in database")
-        return False
-    host, port, user, from_addr = settings
-    password = os.environ.get("EMAIL_PASSWORD")
-    if not password:
-        print("❌ Email error: EMAIL_PASSWORD environment variable not set")
-        return False
-    print(f"📧 Attempting to send email via {host}:{port} as {user}")
-    msg = MIMEMultipart()
-    msg['From'] = from_addr or user
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'html'))
-    try:
-        server = smtplib.SMTP(host, port)
-        server.starttls()
-        server.login(user, password)
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ Email sent successfully to {recipient}")
-        return True
-    except Exception as e:
-        print(f"❌ Email error: {e}")
-        return False
+
 def get_company_list():
-    """Return list of existing company databases."""
     db_files = glob.glob("instance/stockify_*.db")
     companies = []
     for f in db_files:
@@ -98,7 +66,6 @@ def get_company_list():
     return companies
 
 def init_company_db(db_name):
-    """Create all tables for a new company database (with email columns)."""
     with sqlite3.connect(f"instance/{db_name}") as conn:
         # Users
         conn.execute("""
@@ -115,29 +82,15 @@ def init_company_db(db_name):
         except sqlite3.OperationalError:
             pass
 
-        # Company info (with email settings)
+        # Company info
         conn.execute("""
             CREATE TABLE IF NOT EXISTS company (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 gst TEXT,
-                category TEXT,
-                email_host TEXT,
-                email_port INTEGER,
-                email_user TEXT,
-                email_password TEXT,
-                email_from TEXT
+                category TEXT
             )
         """)
-        # Add email columns if they don't exist (for older DBs)
-        try:
-            conn.execute("ALTER TABLE company ADD COLUMN email_host TEXT")
-            conn.execute("ALTER TABLE company ADD COLUMN email_port INTEGER")
-            conn.execute("ALTER TABLE company ADD COLUMN email_user TEXT")
-            conn.execute("ALTER TABLE company ADD COLUMN email_password TEXT")
-            conn.execute("ALTER TABLE company ADD COLUMN email_from TEXT")
-        except sqlite3.OperationalError:
-            pass
 
         # Categories
         conn.execute("""
@@ -156,7 +109,7 @@ def init_company_db(db_name):
             )
         """)
 
-        # Products (no barcode)
+        # Products
         conn.execute("""
             CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -189,7 +142,7 @@ def init_company_db(db_name):
             )
         """)
 
-        # Sales
+        # Sales – add payment_method column
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sales (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,20 +151,30 @@ def init_company_db(db_name):
                 quantity INTEGER,
                 total REAL,
                 date TEXT,
-                warranty_months INTEGER DEFAULT 0
+                warranty_months INTEGER DEFAULT 0,
+                payment_method TEXT
             )
         """)
+        try:
+            conn.execute("ALTER TABLE sales ADD COLUMN payment_method TEXT")
+        except sqlite3.OperationalError:
+            pass
 
-        # Customers
+        # Customers – add points column
         conn.execute("""
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 phone TEXT UNIQUE,
                 email TEXT,
-                address TEXT
+                address TEXT,
+                points INTEGER DEFAULT 0
             )
         """)
+        try:
+            conn.execute("ALTER TABLE customers ADD COLUMN points INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
 
         # Warranties
         conn.execute("""
@@ -363,6 +326,15 @@ def dashboard():
             SELECT COUNT(*) FROM warranties
             WHERE status='active' AND date(end_date) BETWEEN date('now') AND date('now', '+7 days')
         """).fetchone()[0]
+        # For reorder predictions widget
+        predictions = conn.execute("""
+            SELECT p.id, p.name, p.stock,
+                   COALESCE(ROUND(AVG(s.quantity) / 30.0, 2), 0) AS daily_avg
+            FROM products p
+            LEFT JOIN sales s ON p.id = s.product_id AND s.date >= date('now', '-30 days')
+            GROUP BY p.id
+        """).fetchall()
+        reorder_items = [row for row in predictions if row[2] < (row[3] * 7)]  # less than 7 days stock
     return render_template("dashboard.html",
                            total_products=total_products,
                            total_sales=total_sales,
@@ -370,7 +342,8 @@ def dashboard():
                            pending_services=pending_services,
                            active_warranties=active_warranties,
                            today_sales=today_sales,
-                           expiring_warranties=expiring)
+                           expiring_warranties=expiring,
+                           reorder_items=reorder_items)
 
 # ------------------ ADMIN ONLY ROUTES ------------------
 @app.route("/products", methods=["GET", "POST"])
@@ -378,7 +351,6 @@ def dashboard():
 @admin_required
 def products():
     if request.method == "POST":
-        # Add new product
         name = request.form["name"]
         price = float(request.form["price"])
         category = request.form["category"]
@@ -478,23 +450,6 @@ def admin_users():
         users = conn.execute("SELECT id, username, role, email FROM users").fetchall()
     return render_template("admin_users.html", users=users)
 
-@app.route("/email-settings", methods=["GET", "POST"])
-@login_required
-@admin_required
-def email_settings():
-    with get_db() as conn:
-        if request.method == "POST":
-            host = request.form["host"]
-            port = int(request.form["port"])
-            user = request.form["user"]
-            from_addr = request.form["from"]
-            print(f"Saved settings: host={host}, port={port}, user={user}, from={from_addr}")
-            conn.execute("""
-                UPDATE company SET email_host=?, email_port=?, email_user=?, email_from=?
-            """, (host, port, user, from_addr))
-            flash("Email settings saved. Password is taken from environment variable.", "success")
-        settings = conn.execute("SELECT email_host, email_port, email_user, email_from FROM company").fetchone()
-    return render_template("email_settings.html", settings=settings)
 @app.route("/activity-log")
 @login_required
 @admin_required
@@ -516,6 +471,7 @@ def sales():
         qty = int(request.form["qty"])
         customer_id = request.form.get("customer")
         warranty_months = int(request.form.get("warranty_months", 0))
+        payment_method = request.form.get("payment_method", "cash")
 
         with get_db() as conn:
             product = conn.execute("SELECT price, stock FROM products WHERE id=?", (product_id,)).fetchone()
@@ -529,9 +485,9 @@ def sales():
             total = qty * price
             date = datetime.now().strftime("%Y-%m-%d")
             cur = conn.execute("""
-                INSERT INTO sales (product_id, customer_id, quantity, total, date, warranty_months)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (product_id, customer_id, qty, total, date, warranty_months))
+                INSERT INTO sales (product_id, customer_id, quantity, total, date, warranty_months, payment_method)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (product_id, customer_id, qty, total, date, warranty_months, payment_method))
             sale_id = cur.lastrowid
             conn.execute("UPDATE products SET stock = stock - ? WHERE id=?", (qty, product_id))
 
@@ -543,43 +499,24 @@ def sales():
                     VALUES (?, ?, ?, ?, ?, 'active')
                 """, (sale_id, product_id, customer_id, start_date, end_date))
 
-            # Send email notification if customer has email
+            # Loyalty points
             if customer_id:
-                customer = conn.execute("SELECT email, name FROM customers WHERE id=?", (customer_id,)).fetchone()
-                if customer and customer[0]:
-                    product_name = conn.execute("SELECT name FROM products WHERE id=?", (product_id,)).fetchone()[0]
-                    subject = f"Your Order Confirmation – {product_name}"
-                    body = f"""
-                    <html>
-                    <body style="font-family: Arial, sans-serif;">
-                        <h2>Thank you for your purchase, {customer[1]}!</h2>
-                        <p>Here are your order details:</p>
-                        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
-                            <tr><th>Product</th><td>{product_name}</td></tr>
-                            <tr><th>Quantity</th><td>{qty}</td></tr>
-                            <tr><th>Total Amount</th><td>₹{total}</td></tr>
-                            <tr><th>Warranty</th><td>{warranty_months} months</td></tr>
-                            <tr><th>Order Date</th><td>{date}</td></tr>
-                        </table>
-                        <p>We hope you enjoy your purchase!</p>
-                        <p>– Stockify Team</p>
-                    </body>
-                    </html>
-                    """
-                    sent = send_email(customer[0], subject, body)
-                    if sent:
-                        flash("Email confirmation sent to customer.", "success")
-                    else:
-                        flash("Email not sent – SMTP not configured or invalid.", "warning")
+                points_earned = int(total / 100)  # 1 point per ₹100
+                conn.execute("UPDATE customers SET points = points + ? WHERE id=?", (points_earned, customer_id))
+                flash(f"🎁 {points_earned} loyalty points added!", "success")
+
+            # Simulated payment (just for demo)
+            if payment_method != "cash":
+                flash(f"💳 Payment via {payment_method.upper()} simulated. No actual transaction.", "info")
 
         log_activity("SALE", f"Sale of {qty} units of product ID {product_id} to customer {customer_id}")
         flash("Sale recorded successfully!", "success")
 
     with get_db() as conn:
         products = conn.execute("SELECT id, name, price, stock FROM products").fetchall()
-        customers = conn.execute("SELECT id, name, phone FROM customers").fetchall()
+        customers = conn.execute("SELECT id, name, phone, points FROM customers").fetchall()
         recent_sales = conn.execute("""
-            SELECT s.date, p.name, c.name, s.quantity, s.total
+            SELECT s.date, p.name, c.name, s.quantity, s.total, s.payment_method
             FROM sales s
             JOIN products p ON s.product_id = p.id
             LEFT JOIN customers c ON s.customer_id = c.id
@@ -684,6 +621,8 @@ def returns():
                 """, (sale_id, product_id, customer_id, reason, refund_amount, return_date))
                 # Restock 1 unit (assuming one unit returned)
                 conn.execute("UPDATE products SET stock = stock + 1 WHERE id=?", (product_id,))
+                # Deduct loyalty points (simple: deduct 10 points)
+                conn.execute("UPDATE customers SET points = points - 10 WHERE id=?", (customer_id,))
             else:
                 flash("Sale not found.", "danger")
                 return redirect("/returns")
@@ -754,18 +693,18 @@ def export(type):
             headers = ["Name", "SKU", "Price", "Stock", "Category", "Supplier"]
         elif type == "customers":
             ws.title = "Customers"
-            data = conn.execute("SELECT name, phone, email, address FROM customers").fetchall()
-            headers = ["Name", "Phone", "Email", "Address"]
+            data = conn.execute("SELECT name, phone, email, address, points FROM customers").fetchall()
+            headers = ["Name", "Phone", "Email", "Address", "Points"]
         elif type == "sales":
             ws.title = "Sales"
             data = conn.execute("""
-                SELECT s.date, p.name, c.name, s.quantity, s.total
+                SELECT s.date, p.name, c.name, s.quantity, s.total, s.payment_method
                 FROM sales s
                 JOIN products p ON s.product_id = p.id
                 LEFT JOIN customers c ON s.customer_id = c.id
                 ORDER BY s.date DESC
             """).fetchall()
-            headers = ["Date", "Product", "Customer", "Quantity", "Total"]
+            headers = ["Date", "Product", "Customer", "Quantity", "Total", "Payment"]
         else:
             flash("Invalid export type", "danger")
             return redirect("/reports")
@@ -801,7 +740,7 @@ def import_products():
 
     stream = StringIO(file.stream.read().decode("utf-8"))
     csv_reader = csv.reader(stream)
-    next(csv_reader)  # skip header
+    next(csv_reader)
     count = 0
     with get_db() as conn:
         for row in csv_reader:
@@ -812,14 +751,12 @@ def import_products():
             category_name = row[2].strip()
             supplier_name = row[3].strip() if len(row) > 3 else ""
 
-            # Get or create category
             cat = conn.execute("SELECT id FROM categories WHERE name=?", (category_name,)).fetchone()
             if not cat:
                 conn.execute("INSERT INTO categories (name) VALUES (?)", (category_name,))
                 cat = conn.execute("SELECT id FROM categories WHERE name=?", (category_name,)).fetchone()
             category_id = cat[0]
 
-            # Get or create supplier
             supplier_id = None
             if supplier_name:
                 sup = conn.execute("SELECT id FROM suppliers WHERE name=?", (supplier_name,)).fetchone()
@@ -838,6 +775,75 @@ def import_products():
     flash(f"Imported {count} products successfully!", "success")
     return redirect("/tools")
 
+# ------------------ INVOICE & REORDER ROUTES ------------------
+@app.route("/invoice/<int:sale_id>")
+@login_required
+def invoice(sale_id):
+    with get_db() as conn:
+        sale = conn.execute("""
+            SELECT s.total, s.quantity, s.warranty_months, s.date, s.payment_method,
+                   p.name AS product_name,
+                   c.name AS customer_name, c.phone, c.address, c.email
+            FROM sales s
+            JOIN products p ON s.product_id = p.id
+            LEFT JOIN customers c ON s.customer_id = c.id
+            WHERE s.id = ?
+        """, (sale_id,)).fetchone()
+        if not sale:
+            flash("Sale not found", "danger")
+            return redirect("/sales")
+
+        total, qty, warranty_months, sale_date, payment_method, product_name, customer_name, phone, address, email = sale
+        if not customer_name:
+            customer_name = "Walk‑in Customer"
+
+        # Generate QR code linking to warranty page (or sale detail)
+        qr_url = f"http://{request.host}/warranty?search=sale_{sale_id}"
+        qr_img = qrcode.make(qr_url)
+        buffered = BytesIO()
+        qr_img.save(buffered, format="PNG")
+        qr_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+        # Render HTML invoice (no PDF conversion)
+        return render_template("invoice.html",
+                               invoice_id=sale_id,
+                               date=sale_date,
+                               customer_name=customer_name,
+                               phone=phone,
+                               email=email,
+                               address=address,
+                               product_name=product_name,
+                               quantity=qty,
+                               total=total,
+                               warranty=warranty_months,
+                               payment_method=payment_method or "cash",
+                               qr_code=qr_base64)
+@app.route("/reorder")
+@login_required
+@admin_required
+def reorder():
+    with get_db() as conn:
+        predictions = conn.execute("""
+            SELECT p.id, p.name, p.stock,
+                   COALESCE(ROUND(AVG(s.quantity) / 30.0, 2), 0) AS daily_avg
+            FROM products p
+            LEFT JOIN sales s ON p.id = s.product_id AND s.date >= date('now', '-30 days')
+            GROUP BY p.id
+        """).fetchall()
+        reorder_items = []
+        for row in predictions:
+            stock, daily_avg = row[2], row[3]
+            if daily_avg > 0 and stock < (daily_avg * 7):
+                reorder_items.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'stock': stock,
+                    'daily_avg': daily_avg,
+                    'days_remaining': int(stock / daily_avg) if daily_avg > 0 else 0
+                })
+    return render_template("reorder.html", items=reorder_items)
+
+# ------------------ LOGOUT ------------------
 @app.route("/logout")
 def logout():
     if "user" in session:

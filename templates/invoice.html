@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ invoice_id }}</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 2cm; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .invoice-details { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4a90e2; color: white; }
+        .total { font-size: 18px; font-weight: bold; text-align: right; }
+        .qr { text-align: center; margin-top: 20px; }
+        .footer { margin-top: 30px; font-size: 12px; text-align: center; color: #777; }
+        .print-btn { margin-top: 20px; text-align: center; }
+        @media print {
+            .print-btn { display: none; }
+        body { margin: 0;}
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Stockify</h1>
+        <p>Smart Inventory Management</p>
+    </div>
+    <div class="invoice-details">
+        <strong>Invoice #:</strong> {{ invoice_id }}<br>
+        <strong>Date:</strong> {{ date }}<br>
+        <strong>Customer:</strong> {{ customer_name }}<br>
+        {% if phone %}<strong>Phone:</strong> {{ phone }}<br>{% endif %}
+        {% if email %}<strong>Email:</strong> {{ email }}<br>{% endif %}
+        {% if address %}<strong>Address:</strong> {{ address }}<br>{% endif %}
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ product_name }}</td>
+                <td>{{ quantity }}</td>
+                <td>₹{{ "%.2f"|format(total / quantity) if quantity > 0 else 0 }}</td>
+                <td>₹{{ "%.2f"|format(total) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total">
+        Total: ₹{{ "%.2f"|format(total) }}<br>
+        Payment: {{ payment_method|upper }}<br>
+        Warranty: {{ warranty }} months
+    </div>
+
+    <div class="qr">
+        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+        <p>Scan to view warranty details</p>
+    </div>
+    <div class="footer">
+        Thank you for your purchase!<br>
+        For warranty/service, visit: {{ request.host }}/warranty
+    </div>
+    <div class="print-btn">
+        <button onclick="window.print()">Print / Save as PDF</button>
+    </div>
+</body>
+</html>

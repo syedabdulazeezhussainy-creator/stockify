@@ -1,5 +1,4 @@
 Flask
 bcrypt
 openpyxl
-reportlab
-gunicorn
+qrcode

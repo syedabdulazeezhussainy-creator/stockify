@@ -6,6 +6,11 @@
     <div class="card dash-card">
         <h3>Total Products</h3>
         <p class="value">{{ total_products }}</p>
+        <div class="card dash-card">
+    <h3>Reorder Alerts</h3>
+    <p class="value">{{ reorder_items|length }}</p>
+    <a href="/reorder" class="btn">View</a>
+</div>
     </div>
     <div class="card dash-card">
         <h3>Total Sales (₹)</h3>

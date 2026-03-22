@@ -18,6 +18,7 @@
             <option value="">Walk-in Customer</option>
             {% for c in customers %}
             <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }})</option>
+            <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }}) - Points: {{ c[3] }}</option>
             {% endfor %}
         </select>
 
@@ -42,6 +43,7 @@
                     <th>Customer</th>
                     <th>Quantity</th>
                     <th>Total (₹)</th>
+                    <th>Payment</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,10 +54,18 @@
                     <td>{{ sale[2] or 'Walk-in' }}</td>
                     <td>{{ sale[3] }}</td>
                     <td>{{ sale[4] }}</td>
+                    <td>{{ sale[5] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <!-- Inside the form, after warranty field -->
+<label>Payment Method</label>
+<select name="payment_method" required>
+    <option value="cash">Cash</option>
+    <option value="card">Card</option>
+    <option value="upi">UPI</option>
+</select>
     </div>
 </div>
 {% endblock %}
