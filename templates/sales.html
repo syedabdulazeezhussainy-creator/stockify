@@ -44,6 +44,7 @@
                     <th>Quantity</th>
                     <th>Total (₹)</th>
                     <th>Payment</th>
+                    <th>Invoice</th>
                 </tr>
             </thead>
             <tbody>
@@ -55,6 +56,7 @@
                     <td>{{ sale[3] }}</td>
                     <td>{{ sale[4] }}</td>
                     <td>{{ sale[5] }}</td>
+                    <td><a href="/invoice/{{ sale[0] }}" class="btn btn-sm">Invoice</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -16,7 +16,7 @@
         .print-btn { margin-top: 20px; text-align: center; }
         @media print {
             .print-btn { display: none; }
-        body { margin: 0;}
+            body { margin: 0; }
         }
     </style>
 </head>
@@ -42,7 +42,7 @@
             <tr>
                 <td>{{ product_name }}</td>
                 <td>{{ quantity }}</td>
-                <td>₹{{ "%.2f"|format(total / quantity) if quantity > 0 else 0 }}</td>
+                <td>₹{{ "%.2f"|format(total / quantity if quantity > 0 else 0) }}</td>
                 <td>₹{{ "%.2f"|format(total) }}</td>
             </tr>
         </tbody>

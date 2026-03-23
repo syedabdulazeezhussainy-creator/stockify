@@ -8,11 +8,9 @@ import glob
 from flask import Flask, render_template, request, redirect, session, flash, send_file
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
-from io import BytesIO, StringIO
 import qrcode
 import base64
-
-
+from io import BytesIO,StringIO
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 app.permanent_session_lifetime = 3600
@@ -516,7 +514,7 @@ def sales():
         products = conn.execute("SELECT id, name, price, stock FROM products").fetchall()
         customers = conn.execute("SELECT id, name, phone, points FROM customers").fetchall()
         recent_sales = conn.execute("""
-            SELECT s.date, p.name, c.name, s.quantity, s.total, s.payment_method
+            SELECT s.id, s.date, p.name, c.name, s.quantity, s.total, s.payment_method
             FROM sales s
             JOIN products p ON s.product_id = p.id
             LEFT JOIN customers c ON s.customer_id = c.id
@@ -613,21 +611,37 @@ def returns():
 
         with get_db() as conn:
             sale = conn.execute("SELECT product_id, customer_id FROM sales WHERE id=?", (sale_id,)).fetchone()
-            if sale:
-                product_id, customer_id = sale
-                conn.execute("""
-                    INSERT INTO returns (sale_id, product_id, customer_id, reason, refund_amount, return_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, 'pending')
-                """, (sale_id, product_id, customer_id, reason, refund_amount, return_date))
-                # Restock 1 unit (assuming one unit returned)
-                conn.execute("UPDATE products SET stock = stock + 1 WHERE id=?", (product_id,))
-                # Deduct loyalty points (simple: deduct 10 points)
-                conn.execute("UPDATE customers SET points = points - 10 WHERE id=?", (customer_id,))
-            else:
+            if not sale:
                 flash("Sale not found.", "danger")
                 return redirect("/returns")
-        log_activity("RETURN", f"Return processed for sale {sale_id}")
-        flash("Return processed.", "success")
+            product_id, customer_id = sale
+
+            # Insert return record with status 'completed'
+            conn.execute("""
+                INSERT INTO returns (sale_id, product_id, customer_id, reason, refund_amount, return_date, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'completed')
+            """, (sale_id, product_id, customer_id, reason, refund_amount, return_date))
+
+            # Restock the returned item (assume 1 unit per return)
+            conn.execute("UPDATE products SET stock = stock + 1 WHERE id=?", (product_id,))
+
+            # Deduct loyalty points (e.g., 10 points) – adjust as needed
+            conn.execute("UPDATE customers SET points = points - 10 WHERE id=?", (customer_id,))
+
+            # Update warranty status to 'returned' if an active warranty exists for this sale
+            warranty = conn.execute("SELECT id FROM warranties WHERE sale_id=? AND status='active'", (sale_id,)).fetchone()
+            if warranty:
+                conn.execute("UPDATE warranties SET status='returned' WHERE id=?", (warranty[0],))
+
+            # Cancel any pending service requests for this product and customer
+            conn.execute("""
+                UPDATE services SET status='cancelled'
+                WHERE product_id=? AND customer_id=? AND status='pending'
+            """, (product_id, customer_id))
+
+        log_activity("RETURN", f"Return completed for sale {sale_id}")
+        flash("Return processed and completed.", "success")
+        return redirect("/returns")
 
     with get_db() as conn:
         returns = conn.execute("""

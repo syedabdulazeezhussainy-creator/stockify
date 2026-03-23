@@ -1,4 +1,4 @@
-Flask
+flask
 bcrypt
 openpyxl
 qrcode
