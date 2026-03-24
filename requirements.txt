@@ -2,3 +2,5 @@ flask
 bcrypt
 openpyxl
 qrcode
+pillow
+gunicorn
