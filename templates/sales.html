@@ -17,7 +17,6 @@
         <select name="customer">
             <option value="">Walk-in Customer</option>
             {% for c in customers %}
-            <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }})</option>
             <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }}) - Points: {{ c[3] }}</option>
             {% endfor %}
         </select>
@@ -28,6 +27,13 @@
         <label>Warranty (months)</label>
         <input type="number" name="warranty_months" value="0" min="0">
 
+        <label>Payment Method</label>
+        <select name="payment_method" required>
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="upi">UPI</option>
+        </select>
+
         <button type="submit">Record Sale</button>
     </form>
 </div>
@@ -35,9 +41,10 @@
 <h2 class="page-subtitle">Recent Sales</h2>
 <div class="card">
     <div class="table-responsive">
-        <table>
+        <table class="table">
             <thead>
                 <tr>
+                    <th>ID</th>
                     <th>Date</th>
                     <th>Product</th>
                     <th>Customer</th>
@@ -52,22 +59,18 @@
                 <tr>
                     <td>{{ sale[0] }}</td>
                     <td>{{ sale[1] }}</td>
-                    <td>{{ sale[2] or 'Walk-in' }}</td>
-                    <td>{{ sale[3] }}</td>
+                    <td>{{ sale[2] }}</td>
+                    <td>{{ sale[3] or 'Walk-in' }}</td>
                     <td>{{ sale[4] }}</td>
                     <td>{{ sale[5] }}</td>
+                    <td>{{ sale[6]|upper }}</td>
                     <td><a href="/invoice/{{ sale[0] }}" class="btn btn-sm">Invoice</a></td>
                 </tr>
+                {% else %}
+                <tr><td colspan="8">No sales recorded yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
-        <!-- Inside the form, after warranty field -->
-<label>Payment Method</label>
-<select name="payment_method" required>
-    <option value="cash">Cash</option>
-    <option value="card">Card</option>
-    <option value="upi">UPI</option>
-</select>
     </div>
 </div>
 {% endblock %}

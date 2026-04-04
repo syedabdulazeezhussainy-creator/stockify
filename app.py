@@ -5,12 +5,13 @@ import csv
 from datetime import datetime, timedelta
 from functools import wraps
 import glob
-from flask import Flask, render_template, request, redirect, session, flash, send_file
+from flask import Flask, render_template, request, redirect, session, flash, send_file, url_for
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
+from io import BytesIO, StringIO
 import qrcode
 import base64
-from io import BytesIO,StringIO
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 app.permanent_session_lifetime = 3600
@@ -77,7 +78,7 @@ def init_company_db(db_name):
         """)
         try:
             conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        except sqlite3.OperationalError:
+        except:
             pass
 
         # Company info
@@ -140,7 +141,7 @@ def init_company_db(db_name):
             )
         """)
 
-        # Sales – add payment_method column
+        # Sales
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sales (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,10 +156,10 @@ def init_company_db(db_name):
         """)
         try:
             conn.execute("ALTER TABLE sales ADD COLUMN payment_method TEXT")
-        except sqlite3.OperationalError:
+        except:
             pass
 
-        # Customers – add points column
+        # Customers
         conn.execute("""
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,7 +172,7 @@ def init_company_db(db_name):
         """)
         try:
             conn.execute("ALTER TABLE customers ADD COLUMN points INTEGER DEFAULT 0")
-        except sqlite3.OperationalError:
+        except:
             pass
 
         # Warranties
@@ -227,7 +228,7 @@ def init_company_db(db_name):
             )
         """)
 
-        # Insert default admin
+        # Default admin
         admin = conn.execute("SELECT * FROM users WHERE username='admin'").fetchone()
         if not admin:
             hashed = bcrypt.hashpw("admin".encode(), bcrypt.gensalt())
@@ -255,59 +256,57 @@ def staff_login():
 
 @app.route("/login", methods=["POST"])
 def login():
-    if request.method == "POST":
-        if "company_name" in request.form:
-            # Admin login
-            company = request.form["company_name"].strip()
-            gst = request.form["gst"].strip()
-            category = request.form["category"].strip()
-            username = request.form["username"].strip()
-            password = request.form["password"].strip()
-            db_name = f"stockify_{company.replace(' ', '_').lower()}.db"
-            session["db_name"] = db_name
-            init_company_db(db_name)
+    if "company_name" in request.form:
+        # Admin login
+        company = request.form["company_name"].strip()
+        gst = request.form["gst"].strip()
+        category = request.form["category"].strip()
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
+        db_name = f"stockify_{company.replace(' ', '_').lower()}.db"
+        session["db_name"] = db_name
+        init_company_db(db_name)
 
-            with sqlite3.connect(f"instance/{db_name}") as conn:
-                conn.execute("DELETE FROM company")
-                conn.execute("INSERT INTO company (name, gst, category) VALUES (?, ?, ?)",
-                             (company, gst, category))
-                user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        with sqlite3.connect(f"instance/{db_name}") as conn:
+            conn.execute("DELETE FROM company")
+            conn.execute("INSERT INTO company (name, gst, category) VALUES (?, ?, ?)",
+                         (company, gst, category))
+            user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
 
+        if user and bcrypt.checkpw(password.encode(), user[2]):
+            session.permanent = True
+            session["user"] = username
+            session["user_id"] = user[0]
+            session["company"] = company
+            session["role"] = user[3]
+            log_activity("LOGIN", "Admin login successful")
+            flash(f"Welcome admin {username}!", "success")
+            return redirect("/dashboard")
+        else:
+            flash("Invalid admin credentials", "danger")
+            return redirect("/admin-login")
+    else:
+        # Staff login
+        db_name = request.form["company_db"]
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
+        session["db_name"] = db_name
+
+        with sqlite3.connect(f"instance/{db_name}") as conn:
+            user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
             if user and bcrypt.checkpw(password.encode(), user[2]):
+                company = conn.execute("SELECT name FROM company").fetchone()
                 session.permanent = True
                 session["user"] = username
                 session["user_id"] = user[0]
-                session["company"] = company
+                session["company"] = company[0] if company else "Unknown"
                 session["role"] = user[3]
-                log_activity("LOGIN", "Admin login successful")
-                flash(f"Welcome admin {username}!", "success")
+                log_activity("LOGIN", "Staff login successful")
+                flash(f"Welcome {username}!", "success")
                 return redirect("/dashboard")
             else:
-                flash("Invalid admin credentials", "danger")
-                return redirect("/admin-login")
-        else:
-            # Staff login
-            db_name = request.form["company_db"]
-            username = request.form["username"].strip()
-            password = request.form["password"].strip()
-            session["db_name"] = db_name
-
-            with sqlite3.connect(f"instance/{db_name}") as conn:
-                user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
-                if user and bcrypt.checkpw(password.encode(), user[2]):
-                    company = conn.execute("SELECT name FROM company").fetchone()
-                    session.permanent = True
-                    session["user"] = username
-                    session["user_id"] = user[0]
-                    session["company"] = company[0] if company else "Unknown"
-                    session["role"] = user[3]
-                    log_activity("LOGIN", "Staff login successful")
-                    flash(f"Welcome {username}!", "success")
-                    return redirect("/dashboard")
-                else:
-                    flash("Invalid staff credentials", "danger")
-                    return redirect("/staff-login")
-    return redirect("/")
+                flash("Invalid staff credentials", "danger")
+                return redirect("/staff-login")
 
 @app.route("/dashboard")
 @login_required
@@ -324,7 +323,7 @@ def dashboard():
             SELECT COUNT(*) FROM warranties
             WHERE status='active' AND date(end_date) BETWEEN date('now') AND date('now', '+7 days')
         """).fetchone()[0]
-        # For reorder predictions widget
+        # Reorder predictions (simple)
         predictions = conn.execute("""
             SELECT p.id, p.name, p.stock,
                    COALESCE(ROUND(AVG(s.quantity) / 30.0, 2), 0) AS daily_avg
@@ -332,7 +331,7 @@ def dashboard():
             LEFT JOIN sales s ON p.id = s.product_id AND s.date >= date('now', '-30 days')
             GROUP BY p.id
         """).fetchall()
-        reorder_items = [row for row in predictions if row[2] < (row[3] * 7)]  # less than 7 days stock
+        reorder_items = [row for row in predictions if row[3] > 0 and row[2] < (row[3] * 7)]
     return render_template("dashboard.html",
                            total_products=total_products,
                            total_sales=total_sales,
@@ -460,7 +459,7 @@ def activity_log():
         """).fetchall()
     return render_template("activity_log.html", logs=logs)
 
-# ------------------ SHARED ROUTES (Staff & Admin) ------------------
+# ------------------ SHARED ROUTES ------------------
 @app.route("/sales", methods=["GET", "POST"])
 @login_required
 def sales():
@@ -487,7 +486,7 @@ def sales():
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (product_id, customer_id, qty, total, date, warranty_months, payment_method))
             sale_id = cur.lastrowid
-            conn.execute("UPDATE products SET stock = stock - ? WHERE id=?", (qty, product_id))
+            conn.execute("UPDATE products SET stock = stock - ? WHERE id = ?", (qty, product_id))
 
             if warranty_months > 0 and customer_id:
                 start_date = date
@@ -497,15 +496,13 @@ def sales():
                     VALUES (?, ?, ?, ?, ?, 'active')
                 """, (sale_id, product_id, customer_id, start_date, end_date))
 
-            # Loyalty points
             if customer_id:
-                points_earned = int(total / 100)  # 1 point per ₹100
-                conn.execute("UPDATE customers SET points = points + ? WHERE id=?", (points_earned, customer_id))
+                points_earned = int(total / 100)
+                conn.execute("UPDATE customers SET points = points + ? WHERE id = ?", (points_earned, customer_id))
                 flash(f"🎁 {points_earned} loyalty points added!", "success")
 
-            # Simulated payment (just for demo)
             if payment_method != "cash":
-                flash(f"💳 Payment via {payment_method.upper()} simulated. No actual transaction.", "info")
+                flash(f"💳 Payment via {payment_method.upper()} simulated.", "info")
 
         log_activity("SALE", f"Sale of {qty} units of product ID {product_id} to customer {customer_id}")
         flash("Sale recorded successfully!", "success")
@@ -611,35 +608,23 @@ def returns():
 
         with get_db() as conn:
             sale = conn.execute("SELECT product_id, customer_id FROM sales WHERE id=?", (sale_id,)).fetchone()
-            if not sale:
+            if sale:
+                product_id, customer_id = sale
+                conn.execute("""
+                    INSERT INTO returns (sale_id, product_id, customer_id, reason, refund_amount, return_date, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'completed')
+                """, (sale_id, product_id, customer_id, reason, refund_amount, return_date))
+                conn.execute("UPDATE products SET stock = stock + 1 WHERE id=?", (product_id,))
+                conn.execute("UPDATE customers SET points = points - 10 WHERE id=?", (customer_id,))
+                conn.execute("UPDATE warranties SET status='returned' WHERE sale_id=?", (sale_id,))
+                conn.execute("""
+                    UPDATE services SET status='cancelled'
+                    WHERE product_id=? AND customer_id=? AND status='pending'
+                """, (product_id, customer_id))
+            else:
                 flash("Sale not found.", "danger")
                 return redirect("/returns")
-            product_id, customer_id = sale
-
-            # Insert return record with status 'completed'
-            conn.execute("""
-                INSERT INTO returns (sale_id, product_id, customer_id, reason, refund_amount, return_date, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'completed')
-            """, (sale_id, product_id, customer_id, reason, refund_amount, return_date))
-
-            # Restock the returned item (assume 1 unit per return)
-            conn.execute("UPDATE products SET stock = stock + 1 WHERE id=?", (product_id,))
-
-            # Deduct loyalty points (e.g., 10 points) – adjust as needed
-            conn.execute("UPDATE customers SET points = points - 10 WHERE id=?", (customer_id,))
-
-            # Update warranty status to 'returned' if an active warranty exists for this sale
-            warranty = conn.execute("SELECT id FROM warranties WHERE sale_id=? AND status='active'", (sale_id,)).fetchone()
-            if warranty:
-                conn.execute("UPDATE warranties SET status='returned' WHERE id=?", (warranty[0],))
-
-            # Cancel any pending service requests for this product and customer
-            conn.execute("""
-                UPDATE services SET status='cancelled'
-                WHERE product_id=? AND customer_id=? AND status='pending'
-            """, (product_id, customer_id))
-
-        log_activity("RETURN", f"Return completed for sale {sale_id}")
+        log_activity("RETURN", f"Return processed for sale {sale_id}")
         flash("Return processed and completed.", "success")
         return redirect("/returns")
 
@@ -669,7 +654,49 @@ def reports():
         pie = conn.execute("SELECT name, stock FROM products WHERE stock > 0").fetchall()
     return render_template("reports.html", labels=labels, totals=totals, pie_data=pie)
 
-# ------------------ TOOLS ROUTES ------------------
+# ------------------ REORDER & QUICK RESTOCK ------------------
+@app.route("/reorder")
+@login_required
+@admin_required
+def reorder():
+    with get_db() as conn:
+        predictions = conn.execute("""
+            SELECT p.id, p.name, p.stock,
+                   COALESCE(ROUND(AVG(s.quantity) / 30.0, 2), 0) AS daily_avg
+            FROM products p
+            LEFT JOIN sales s ON p.id = s.product_id AND s.date >= date('now', '-30 days')
+            GROUP BY p.id
+        """).fetchall()
+        reorder_items = []
+        for row in predictions:
+            pid, name, stock, daily_avg = row
+            if daily_avg > 0 and stock < (daily_avg * 7):
+                reorder_items.append({
+                    'id': pid,
+                    'name': name,
+                    'stock': stock,
+                    'daily_avg': daily_avg,
+                    'days_remaining': int(stock / daily_avg) if daily_avg > 0 else 0
+                })
+    return render_template("reorder.html", items=reorder_items)
+
+@app.route("/quick-restock/<int:product_id>")
+@login_required
+@admin_required
+def quick_restock(product_id):
+    """Add 10 units to a product's stock from the reorder page."""
+    qty = 10
+    notes = "Auto restock from reorder alert"
+    date = datetime.now().strftime("%Y-%m-%d")
+    with get_db() as conn:
+        conn.execute("INSERT INTO stock_in (product_id, quantity, date, notes) VALUES (?, ?, ?, ?)",
+                     (product_id, qty, date, notes))
+        conn.execute("UPDATE products SET stock = stock + ? WHERE id = ?", (qty, product_id))
+    log_activity("QUICK_RESTOCK", f"Added {qty} units to product ID {product_id} from reorder alert")
+    flash(f"Added {qty} units to stock for product ID {product_id}.", "success")
+    return redirect(url_for('reorder'))
+
+# ------------------ TOOLS ------------------
 @app.route("/tools")
 @login_required
 def tools():
@@ -789,7 +816,7 @@ def import_products():
     flash(f"Imported {count} products successfully!", "success")
     return redirect("/tools")
 
-# ------------------ INVOICE & REORDER ROUTES ------------------
+# ------------------ INVOICE ------------------
 @app.route("/invoice/<int:sale_id>")
 @login_required
 def invoice(sale_id):
@@ -811,14 +838,12 @@ def invoice(sale_id):
         if not customer_name:
             customer_name = "Walk‑in Customer"
 
-        # Generate QR code linking to warranty page (or sale detail)
-        qr_url = f"http://{request.host}/warranty?search=sale_{sale_id}"
+        qr_url = f"{request.url_root}warranty?search=sale_{sale_id}"
         qr_img = qrcode.make(qr_url)
         buffered = BytesIO()
         qr_img.save(buffered, format="PNG")
         qr_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-        # Render HTML invoice (no PDF conversion)
         return render_template("invoice.html",
                                invoice_id=sale_id,
                                date=sale_date,
@@ -832,30 +857,6 @@ def invoice(sale_id):
                                warranty=warranty_months,
                                payment_method=payment_method or "cash",
                                qr_code=qr_base64)
-@app.route("/reorder")
-@login_required
-@admin_required
-def reorder():
-    with get_db() as conn:
-        predictions = conn.execute("""
-            SELECT p.id, p.name, p.stock,
-                   COALESCE(ROUND(AVG(s.quantity) / 30.0, 2), 0) AS daily_avg
-            FROM products p
-            LEFT JOIN sales s ON p.id = s.product_id AND s.date >= date('now', '-30 days')
-            GROUP BY p.id
-        """).fetchall()
-        reorder_items = []
-        for row in predictions:
-            stock, daily_avg = row[2], row[3]
-            if daily_avg > 0 and stock < (daily_avg * 7):
-                reorder_items.append({
-                    'id': row[0],
-                    'name': row[1],
-                    'stock': stock,
-                    'daily_avg': daily_avg,
-                    'days_remaining': int(stock / daily_avg) if daily_avg > 0 else 0
-                })
-    return render_template("reorder.html", items=reorder_items)
 
 # ------------------ LOGOUT ------------------
 @app.route("/logout")

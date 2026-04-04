@@ -3,9 +3,9 @@
 <h2 class="page-title">Reorder Recommendations</h2>
 
 <div class="card">
-    <p>Items with less than 7 days of stock based on average daily sales (last 30 days).</p>
+    <p>Products with less than 7 days of stock based on average daily sales (last 30 days).</p>
     <div class="table-responsive">
-        <table>
+        <table class="table">
             <thead>
                 <tr>
                     <th>Product</th>
@@ -22,10 +22,12 @@
                     <td>{{ item.stock }}</td>
                     <td>{{ "%.2f"|format(item.daily_avg) }}</td>
                     <td>{{ item.days_remaining }}</td>
-                    <td><a href="/add-stock/{{ item.id }}" class="btn btn-sm">Restock</a></td>
+                    <td>
+                        <a href="{{ url_for('quick_restock', product_id=item.id) }}" class="btn btn-sm btn-success">Restock (10 units)</a>
+                    </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5">No items need reordering.</td></tr>
+                <tr><td colspan="5">No items need reordering. Good stock levels!</td></tr>
                 {% endfor %}
             </tbody>
         </table>
